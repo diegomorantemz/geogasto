@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - GeoGasto</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body class="bg-light">
+
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <div class="container">
+        <a class="navbar-brand" href="/index.html">
+            <i class="bi bi-wallet2"></i> GeoGasto
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarMain">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item">
+                    <a class="nav-link active" href="/index.html">
+                        <i class="bi bi-house"></i> Inicio
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/expenses.html">
+                        <i class="bi bi-list-ul"></i> Gastos
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/categories.html">
+                        <i class="bi bi-tags"></i> Categorías
+                    </a>
+                </li>
+            </ul>
+            <div class="d-flex align-items-center">
+                <span class="text-white me-3">
+                    <i class="bi bi-person-circle"></i>
+                    <span id="userEmail"></span>
+                </span>
+                <button class="btn btn-outline-light btn-sm" onclick="logout()">
+                    <i class="bi bi-box-arrow-right"></i> Salir
+                </button>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- Contenido -->
+<div class="container mt-4">
+
+    <div class="mb-4">
+        <h2>Hola, <span id="userName">usuario</span></h2>
+        <p class="text-muted">Resumen de tus gastos</p>
+    </div>
+
+    <!-- Tarjetas de resumen -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Gastos este mes</h6>
+                            <h3 class="mb-0" id="totalMes">S/ 0.00</h3>
+                        </div>
+                        <i class="bi bi-cash-stack text-primary" style="font-size: 2rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Cantidad de gastos</h6>
+                            <h3 class="mb-0" id="cantidadGastos">0</h3>
+                        </div>
+                        <i class="bi bi-receipt text-success" style="font-size: 2rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted mb-1">Categorías usadas</h6>
+                            <h3 class="mb-0" id="cantidadCategorias">0</h3>
+                        </div>
+                        <i class="bi bi-tags text-warning" style="font-size: 2rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráficos -->
+    <div class="row g-3 mb-4">
+        <div class="col-lg-5">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">Gastos por categoría (mes actual)</h5>
+                    <div style="height: 280px;">
+                        <canvas id="chartCategorias"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-7">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">Evolución mensual (últimos 12 meses)</h5>
+                    <div style="height: 280px;">
+                        <canvas id="chartMeses"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Accesos rápidos -->
+    <div class="card shadow-sm border-0">
+        <div class="card-body">
+            <h5 class="card-title mb-3">Accesos rápidos</h5>
+            <div class="d-flex flex-wrap gap-2">
+                <a href="/new-expense.html" class="btn btn-primary">
+                    <i class="bi bi-plus-circle"></i> Nuevo gasto
+                </a>
+                <a href="/expenses.html" class="btn btn-outline-primary">
+                    <i class="bi bi-list-ul"></i> Ver todos los gastos
+                </a>
+                <a href="/categories.html" class="btn btn-outline-secondary">
+                    <i class="bi bi-tags"></i> Gestionar categorías
+                </a>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/auth.js"></script>
+<script src="/js/dashboard.js"></script>
+
+</body>
+</html>

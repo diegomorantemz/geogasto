@@ -1,0 +1,47 @@
+/* GeoGasto custom styles */
+
+/* Navbar brand spacing */
+.navbar-brand i {
+    margin-right: 0.25rem;
+}
+
+/* Cards */
+.card {
+    border-radius: 0.5rem;
+}
+
+/* Table row hover */
+.table-hover tbody tr:hover {
+    background-color: #f8f9fa;
+    cursor: default;
+}
+
+/* Search results dropdown */
+#searchResults .list-group-item {
+    cursor: pointer;
+    border-left: none;
+    border-right: none;
+}
+
+#searchResults .list-group-item:first-child {
+    border-top: none;
+}
+
+#searchResults .list-group-item:last-child {
+    border-bottom: none;
+}
+
+/* Map container */
+#map {
+    z-index: 1;  /* Debajo de modales y dropdowns */
+}
+
+/* Leaflet fixes dentro de Bootstrap */
+.leaflet-container {
+    font-family: inherit;
+}
+
+/* Botones de acción en tablas */
+.table .btn-sm {
+    padding: 0.2rem 0.5rem;
+}
