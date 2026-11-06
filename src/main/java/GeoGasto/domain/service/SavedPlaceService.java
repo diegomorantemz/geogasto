@@ -5,6 +5,7 @@ import GeoGasto.domain.exception.ResourceNotFoundException;
 import GeoGasto.persistence.entity.Location;
 import GeoGasto.persistence.entity.SavedPlace;
 import GeoGasto.persistence.entity.User;
+import GeoGasto.persistence.repository.ExpenseRepository;
 import GeoGasto.persistence.repository.LocationRepository;
 import GeoGasto.persistence.repository.SavedPlaceRepository;
 import GeoGasto.persistence.repository.UserRepository;
@@ -21,6 +22,7 @@ public class SavedPlaceService {
     private final SavedPlaceRepository savedPlaceRepository;
     private final UserRepository userRepository;
     private final LocationRepository locationRepository;
+    private final ExpenseRepository expenseRepository;
 
     @Transactional(readOnly = true)
     public List<SavedPlaceResponse> listar(String email) {
@@ -73,7 +75,23 @@ public class SavedPlaceService {
         if (!place.getUser().getId().equals(user.getId())) {
             throw new ResourceNotFoundException("Lugar guardado no encontrado");
         }
+
+        Location ubicacion = place.getLocation();
         savedPlaceRepository.delete(place);
+        savedPlaceRepository.flush();
+        eliminarUbicacionSiHuerfana(ubicacion);
+    }
+
+    private void eliminarUbicacionSiHuerfana(Location location) {
+        if (location == null) {
+            return;
+        }
+
+        boolean usadaPorGasto = expenseRepository.existsByLocationId(location.getId());
+        boolean usadaPorLugar = savedPlaceRepository.existsByLocationId(location.getId());
+        if (!usadaPorGasto && !usadaPorLugar) {
+            locationRepository.delete(location);
+        }
     }
 
     private User obtenerUsuario(String email) {

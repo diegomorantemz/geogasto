@@ -19,6 +19,8 @@ obtenida por GPS, búsqueda por nombre o selección manual en un mapa interactiv
 - [Endpoints de la API](#endpoints-de-la-api)
 - [Estructura del proyecto](#estructura-del-proyecto)
 - [Uso de la aplicación](#uso-de-la-aplicación)
+- [Docker](#docker)
+- [CI](#ci)
 - [Decisiones técnicas](#decisiones-técnicas)
 - [Autor](#autor)
 
@@ -120,6 +122,8 @@ Servicios externos:
 | Lombok | 1.18.x | Reducción de boilerplate |
 | PostgreSQL Driver | 42.7.x | Conexión a PostgreSQL |
 | SpringDoc OpenAPI | 2.6.0 | Documentación de API |
+| Testcontainers | 2.x | Pruebas de integración con PostgreSQL |
+| Docker / Compose | 24+ | Contenedores y entorno reproducible |
 
 ### Frontend
 | Tecnología | Uso |
@@ -210,18 +214,51 @@ Flyway crea y actualiza el esquema automáticamente al arrancar.
 
 ### 5. Ejecutar las pruebas
 
+Las pruebas de integración usan **Testcontainers** y levantan una PostgreSQL 16
+en Docker. No necesitan la base local ni el `.env`.
+
 ```bash
 ./mvnw test
 ```
 
-> Las pruebas de integración actuales requieren una PostgreSQL accesible con las
-> credenciales del `.env`.
+> Requiere Docker en ejecución. Si Docker no está disponible, las pruebas se
+> omiten automáticamente en lugar de fallar.
+>
+> Si usas Colima:
+>
+> ```bash
+> export DOCKER_HOST=unix://$HOME/.colima/default/docker.sock
+> export TESTCONTAINERS_RYUK_DISABLED=true
+> ./mvnw test
+> ```
 
 ### 6. Compilar el JAR
 
 ```bash
 ./mvnw clean package
 java -jar target/geogasto-0.0.1-SNAPSHOT.jar
+```
+
+### 7. Ejecutar con Docker Compose
+
+```bash
+docker compose up --build
+```
+
+Esto levanta PostgreSQL y la aplicación. La web queda disponible en
+<http://localhost:8080>. El contenedor toma `DB_USER`, `DB_PASSWORD` y
+`JWT_SECRET` del archivo `.env`.
+
+Para detener los contenedores:
+
+```bash
+docker compose down
+```
+
+Para borrar también los datos de PostgreSQL:
+
+```bash
+docker compose down -v
 ```
 
 ---
@@ -347,6 +384,11 @@ src/main/java/GeoGasto/
 src/main/resources/
 ├── db/migration/        # Migraciones Flyway (V1, V2, ...)
 └── static/              # Frontend HTML + CSS + JS
+
+src/test/java/GeoGasto/   # Pruebas de integración con Testcontainers
+.github/workflows/ci.yml  # Pipeline de GitHub Actions
+Dockerfile                # Imagen de la aplicación
+docker-compose.yml        # PostgreSQL + aplicación
 ```
 
 ---
@@ -367,6 +409,36 @@ src/main/resources/
 
 ---
 
+## Docker
+
+El proyecto incluye:
+
+- `Dockerfile` multi-etapa (Maven para compilar, JRE 17 para ejecutar).
+- `docker-compose.yml` con PostgreSQL 16 y la aplicación.
+- Healthcheck de PostgreSQL y espera a que esté listo antes de arrancar la app.
+
+Comandos útiles:
+
+```bash
+docker compose up --build      # construir y levantar
+docker compose logs -f app     # ver logs de la aplicación
+docker compose down            # detener
+docker compose down -v         # detener y borrar el volumen de datos
+```
+
+---
+
+## CI
+
+El workflow `.github/workflows/ci.yml` se ejecuta en cada push a `master` o
+`diego-dev` y en cada pull request:
+
+1. Configura Java 17.
+2. Ejecuta `./mvnw -B test`.
+3. Testcontainers levanta PostgreSQL 16 dentro del runner de GitHub Actions.
+
+---
+
 ## Decisiones técnicas
 
 - **Arquitectura en capas** (`controller → service → repository`) para separar
@@ -382,10 +454,9 @@ src/main/resources/
 
 ### Limitaciones conocidas y siguientes pasos
 
-- Ampliar las pruebas (servicios y controladores) y usar Testcontainers para no
-  depender de una base local.
-- Limpiar ubicaciones que queden huérfanas al eliminar gastos.
-- Agregar Docker Compose y un pipeline de CI.
+- Ampliar la cobertura con pruebas unitarias de servicios y controladores.
+- Agregar una pantalla de perfil para editar nombre, moneda y zona horaria.
+- Internacionalizar textos y formatos de fecha/moneda.
 
 ---
 
