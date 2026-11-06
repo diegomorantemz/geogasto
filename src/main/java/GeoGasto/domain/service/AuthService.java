@@ -4,6 +4,9 @@ import GeoGasto.config.JwtService;
 import GeoGasto.domain.dto.auth.AuthResponse;
 import GeoGasto.domain.dto.auth.LoginRequest;
 import GeoGasto.domain.dto.auth.RegisterRequest;
+import GeoGasto.domain.dto.auth.UpdateProfileRequest;
+import GeoGasto.domain.dto.auth.UserProfileResponse;
+import GeoGasto.domain.exception.ResourceNotFoundException;
 import GeoGasto.persistence.entity.User;
 import GeoGasto.persistence.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -12,6 +15,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -44,7 +48,7 @@ public class AuthService {
                 .build();
 
         String token = jwtService.generateToken(userDetails);
-        return AuthResponse.builder().token(token).build();
+        return AuthResponse.builder().token(token).moneda(user.getMoneda()).build();
     }
 
     public AuthResponse login(LoginRequest request) {
@@ -62,6 +66,43 @@ public class AuthService {
                 .build();
 
         String token = jwtService.generateToken(userDetails);
-        return AuthResponse.builder().token(token).build();
+        return AuthResponse.builder().token(token).moneda(user.getMoneda()).build();
+    }
+
+    @Transactional(readOnly = true)
+    public UserProfileResponse perfil(String email) {
+        return toProfile(obtenerUsuario(email));
+    }
+
+    @Transactional
+    public UserProfileResponse actualizarPerfil(String email, UpdateProfileRequest request) {
+        User user = obtenerUsuario(email);
+
+        if (request.getNombre() != null && !request.getNombre().isBlank()) {
+            user.setNombre(request.getNombre());
+        }
+        if (request.getMoneda() != null) {
+            user.setMoneda(request.getMoneda());
+        }
+        if (request.getTimezone() != null && !request.getTimezone().isBlank()) {
+            user.setTimezone(request.getTimezone());
+        }
+
+        userRepository.save(user);
+        return toProfile(user);
+    }
+
+    private User obtenerUsuario(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
+    }
+
+    private UserProfileResponse toProfile(User user) {
+        return UserProfileResponse.builder()
+                .email(user.getEmail())
+                .nombre(user.getNombre())
+                .moneda(user.getMoneda())
+                .timezone(user.getTimezone())
+                .build();
     }
 }

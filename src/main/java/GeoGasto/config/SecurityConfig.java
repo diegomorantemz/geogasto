@@ -35,7 +35,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // ===== Public =====
                         .requestMatchers(
-                                "/api/auth/**",
+                                "/api/auth/register",
+                                "/api/auth/login",
                                 "/",
                                 "/*.html",
                                 "/css/**",

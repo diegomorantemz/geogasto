@@ -257,6 +257,8 @@ Authorization: Bearer <token>
 |--------|------|-------------|
 | `POST` | `/api/auth/register` | Registrar usuario y obtener token |
 | `POST` | `/api/auth/login` | Iniciar sesión y obtener token |
+| `GET` | `/api/auth/me` | Obtener perfil del usuario autenticado |
+| `PUT` | `/api/auth/me` | Actualizar nombre, moneda o zona horaria |
 
 ### Categorías
 

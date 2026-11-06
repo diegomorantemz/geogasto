@@ -9,6 +9,8 @@ let totalPages = 1;
 document.addEventListener('DOMContentLoaded', async () => {
     if (!requireLogin()) return;
 
+    await ensureProfile();
+
     const email = getEmail();
     if (email) document.getElementById('userEmail').textContent = email;
 
@@ -252,7 +254,7 @@ function formatDate(iso) {
 }
 
 function formatMoney(amount) {
-    return 'S/ ' + Number(amount).toFixed(2);
+    return currencySymbol() + ' ' + Number(amount).toFixed(2);
 }
 
 function escapeHtml(str) {
