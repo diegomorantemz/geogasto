@@ -50,3 +50,10 @@ const api = {
     put: (url, body) => request(url, { method: 'PUT', body: JSON.stringify(body) }),
     delete: (url) => request(url, { method: 'DELETE' })
 };
+
+// Fecha de hoy en la zona horaria del navegador (no en UTC).
+function todayLocalISO() {
+    const now = new Date();
+    const offsetMs = now.getTimezoneOffset() * 60000;
+    return new Date(now.getTime() - offsetMs).toISOString().split('T')[0];
+}

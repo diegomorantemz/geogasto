@@ -2,14 +2,49 @@
 
 const TOKEN_KEY = 'geogasto_token';
 const EMAIL_KEY = 'geogasto_email';
+const CURRENCY_KEY = 'geogasto_moneda';
 
-function saveSession(token, email) {
+function saveSession(token, email, moneda) {
     localStorage.setItem(TOKEN_KEY, token);
     localStorage.setItem(EMAIL_KEY, email);
+    if (moneda) {
+        localStorage.setItem(CURRENCY_KEY, moneda);
+    }
 }
 
 function getEmail() {
     return localStorage.getItem(EMAIL_KEY);
+}
+
+function getMoneda() {
+    return localStorage.getItem(CURRENCY_KEY) || 'USD';
+}
+
+function currencySymbol(moneda = getMoneda()) {
+    const symbols = {
+        USD: '$',
+        PEN: 'S/',
+        EUR: '€',
+        MXN: '$',
+        COP: '$',
+        ARS: '$',
+        CLP: '$',
+        BRL: 'R$'
+    };
+    return symbols[moneda] || moneda;
+}
+
+// Completa la moneda para sesiones creadas antes de existir este dato.
+async function ensureProfile() {
+    if (localStorage.getItem(CURRENCY_KEY)) return;
+
+    try {
+        const me = await api.get('/auth/me');
+        if (me.email) localStorage.setItem(EMAIL_KEY, me.email);
+        if (me.moneda) localStorage.setItem(CURRENCY_KEY, me.moneda);
+    } catch (e) {
+        // Si falla, se mantiene la moneda por defecto.
+    }
 }
 
 function isLoggedIn() {
@@ -19,6 +54,7 @@ function isLoggedIn() {
 function logout() {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(EMAIL_KEY);
+    localStorage.removeItem(CURRENCY_KEY);
     window.location.href = '/login.html';
 }
 
@@ -42,7 +78,7 @@ async function handleLogin(event) {
 
     try {
         const data = await api.post('/auth/login', { email, password });
-        saveSession(data.token, email);
+        saveSession(data.token, email, data.moneda);
         window.location.href = '/index.html';
     } catch (err) {
         errorBox.textContent = 'Email o contraseña incorrectos';

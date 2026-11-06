@@ -58,9 +58,9 @@ de desarrollo backend con Spring Boot y arquitectura REST.
 
 ### Dashboard
 - Total gastado en el mes actual.
-- Cantidad de gastos y categorías usadas.
+- Cantidad de gastos y categorías usadas en el mes actual.
 - Gráfico de dona: distribución por categoría (mes actual).
-- Gráfico de barras: evolución mensual (últimos 12 meses).
+- Gráfico de barras: evolución de los últimos 12 meses (incluye meses sin gastos).
 
 ### Seguridad
 - Autenticación con JWT (JSON Web Tokens).
@@ -151,3 +151,245 @@ Antes de ejecutar el proyecto, asegúrate de tener instalado:
 java -version    # debe mostrar 17 o superior
 mvn -version     # debe mostrar 3.9+
 psql --version   # debe mostrar PostgreSQL 14+
+```
+
+> El puerto de PostgreSQL se configura en el archivo `.env` (por defecto el proyecto
+> de ejemplo usa `5432`, pero puedes usar cualquier puerto, por ejemplo `5433`).
+
+---
+
+## Instalación y ejecución
+
+### 1. Clonar el repositorio
+
+```bash
+git clone <url-del-repositorio> geogasto
+cd geogasto
+```
+
+### 2. Crear la base de datos
+
+```bash
+createdb -U postgres GeoGasto
+```
+
+Si tu instalación usa otro usuario o puerto:
+
+```bash
+createdb -h localhost -p 5433 -U postgres GeoGasto
+```
+
+### 3. Configurar variables de entorno
+
+Copia el archivo de ejemplo y completa tus credenciales:
+
+```bash
+cp .env.example .env
+```
+
+```properties
+DB_URL=jdbc:postgresql://localhost:5432/GeoGasto
+DB_USER=postgres
+DB_PASSWORD=tu_password
+```
+
+> `.env` está en `.gitignore`: nunca subas credenciales reales al repositorio.
+
+### 4. Ejecutar la aplicación
+
+```bash
+./mvnw spring-boot:run
+```
+
+La aplicación queda disponible en:
+
+- Aplicación web: <http://localhost:8080>
+- Swagger UI: <http://localhost:8080/swagger-ui.html>
+
+Flyway crea y actualiza el esquema automáticamente al arrancar.
+
+### 5. Ejecutar las pruebas
+
+```bash
+./mvnw test
+```
+
+> Las pruebas de integración actuales requieren una PostgreSQL accesible con las
+> credenciales del `.env`.
+
+### 6. Compilar el JAR
+
+```bash
+./mvnw clean package
+java -jar target/geogasto-0.0.1-SNAPSHOT.jar
+```
+
+---
+
+## Configuración
+
+| Variable / propiedad | Descripción | Valor por defecto |
+|----------------------|-------------|-------------------|
+| `DB_URL` | URL JDBC de PostgreSQL | — |
+| `DB_USER` | Usuario de la base de datos | — |
+| `DB_PASSWORD` | Contraseña de la base de datos | — |
+| `JWT_SECRET` | Clave para firmar los JWT (mínimo 256 bits) | — |
+| `jwt.expiration` | Vigencia del token en ms | `86400000` (24 h) |
+| `nominatim.base-url` | URL de Nominatim | `https://nominatim.openstreetmap.org` |
+| `server.port` | Puerto HTTP | `8080` |
+
+> Genera `JWT_SECRET` con una clave aleatoria de al menos 256 bits, por ejemplo:
+> `openssl rand -base64 48`. No reutilices la clave de ejemplo en producción.
+
+---
+
+## Endpoints de la API
+
+Todas las rutas `/api/**` (excepto `/api/auth/**`) requieren el header:
+
+```http
+Authorization: Bearer <token>
+```
+
+### Autenticación
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| `POST` | `/api/auth/register` | Registrar usuario y obtener token |
+| `POST` | `/api/auth/login` | Iniciar sesión y obtener token |
+| `GET` | `/api/auth/me` | Obtener perfil del usuario autenticado |
+| `PUT` | `/api/auth/me` | Actualizar nombre, moneda o zona horaria |
+
+### Categorías
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| `GET` | `/api/categories` | Listar categorías del usuario |
+| `GET` | `/api/categories/{id}` | Obtener una categoría |
+| `POST` | `/api/categories` | Crear categoría |
+| `PUT` | `/api/categories/{id}` | Actualizar categoría |
+| `DELETE` | `/api/categories/{id}` | Eliminar categoría |
+
+### Gastos
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| `GET` | `/api/expenses` | Listar gastos paginados y filtrados |
+| `GET` | `/api/expenses/{id}` | Obtener un gasto |
+| `POST` | `/api/expenses` | Crear gasto |
+| `POST` | `/api/expenses/with-location` | Crear gasto con ubicación nueva |
+| `PUT` | `/api/expenses/{id}` | Actualizar gasto |
+| `DELETE` | `/api/expenses/{id}` | Eliminar gasto |
+| `GET` | `/api/expenses/export` | Exportar gastos a CSV |
+
+Parámetros de `GET /api/expenses`:
+
+| Parámetro | Ejemplo | Descripción |
+|-----------|---------|-------------|
+| `page` | `0` | Número de página (base 0) |
+| `size` | `10` | Tamaño de página |
+| `sort` | `fecha,desc` | Ordenamiento |
+| `desde` | `2026-01-01` | Fecha mínima (inclusive) |
+| `hasta` | `2026-12-31` | Fecha máxima (inclusive) |
+| `categoryId` | `3` | Filtrar por categoría |
+
+`GET /api/expenses/export` acepta los mismos filtros `desde`, `hasta` y
+`categoryId`, y devuelve un archivo `gastos.csv` en UTF-8.
+
+### Ubicaciones
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| `GET` | `/api/locations/{id}` | Obtener ubicación |
+| `POST` | `/api/locations` | Crear ubicación |
+| `PUT` | `/api/locations/{id}` | Actualizar ubicación |
+
+### Lugares guardados
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| `GET` | `/api/saved-places` | Listar lugares guardados |
+| `POST` | `/api/saved-places` | Guardar un lugar (`alias`, `locationId`) |
+| `POST` | `/api/saved-places/{id}/use` | Incrementar contador de uso |
+| `DELETE` | `/api/saved-places/{id}` | Eliminar lugar guardado |
+
+### Geocodificación
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| `GET` | `/api/geocode/search?q=...` | Buscar lugares por nombre |
+| `GET` | `/api/geocode/reverse?lat=...&lon=...` | Obtener dirección desde coordenadas |
+
+### Estadísticas
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| `GET` | `/api/stats` | Resumen del mes y últimos 12 meses |
+
+---
+
+## Estructura del proyecto
+
+```text
+src/main/java/GeoGasto/
+├── config/              # Seguridad, JWT y UserDetails
+├── domain/
+│   ├── dto/             # Request/Response por módulo
+│   ├── exception/       # Excepciones de dominio
+│   └── service/         # Lógica de negocio
+├── persistence/
+│   ├── entity/          # Entidades JPA
+│   └── repository/      # Repositorios Spring Data
+└── web/
+    ├── advice/          # Manejo global de errores
+    └── controller/      # Endpoints REST
+
+src/main/resources/
+├── db/migration/        # Migraciones Flyway (V1, V2, ...)
+└── static/              # Frontend HTML + CSS + JS
+```
+
+---
+
+## Uso de la aplicación
+
+1. **Regístrate** en `/register.html` e inicia sesión en `/login.html`.
+2. **Crea categorías** en `/categories.html` (nombre, color e icono).
+3. **Registra un gasto** en `/new-expense.html`:
+   - Usa tu ubicación GPS actual.
+   - Busca un lugar por nombre.
+   - Haz clic o arrastra el marcador en el mapa.
+   - O guarda el lugar como favorito ("Casa", "Trabajo", etc.).
+4. **Consulta y filtra** tus gastos en `/expenses.html` por fecha y categoría.
+5. **Exporta** el listado filtrado a CSV.
+6. **Revisa el dashboard** en `/index.html`: total del mes, distribución por
+   categoría y evolución de los últimos 12 meses.
+
+---
+
+## Decisiones técnicas
+
+- **Arquitectura en capas** (`controller → service → repository`) para separar
+  responsabilidades y facilitar las pruebas.
+- **DTOs** en lugar de exponer entidades JPA, evitando fugas de datos y ciclos
+  de serialización.
+- **JWT stateless** con BCrypt: el servidor no guarda sesiones.
+- **Aislamiento por usuario**: cada consulta filtra por el usuario autenticado.
+- **Flyway** como única fuente del esquema; Hibernate solo valida (`ddl-auto=validate`).
+- **Filtros en base de datos** mediante `Specification`, no en el navegador.
+- **Nominatim/OpenStreetMap** para geocodificación y **Leaflet** para el mapa.
+- **Chart.js** para las gráficas del dashboard.
+
+### Limitaciones conocidas y siguientes pasos
+
+- Ampliar las pruebas (servicios y controladores) y usar Testcontainers para no
+  depender de una base local.
+- Limpiar ubicaciones que queden huérfanas al eliminar gastos.
+- Agregar Docker Compose y un pipeline de CI.
+
+---
+
+## Autor
+
+**Diego Morante** — Proyecto universitario de administración de gastos con
+ubicación geográfica.

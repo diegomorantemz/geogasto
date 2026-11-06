@@ -57,9 +57,14 @@
             <h2 class="mb-1">Mis gastos</h2>
             <p class="text-muted mb-0">Registra y consulta tus gastos</p>
         </div>
-        <button class="btn btn-primary" onclick="openNewExpenseModal()">
-            <i class="bi bi-plus-circle"></i> Nuevo gasto
-        </button>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-primary" onclick="exportExpenses()">
+                <i class="bi bi-download"></i> Exportar CSV
+            </button>
+            <button class="btn btn-primary" onclick="openNewExpenseModal()">
+                <i class="bi bi-plus-circle"></i> Nuevo gasto
+            </button>
+        </div>
     </div>
 
     <!-- Alerts -->
@@ -151,7 +156,7 @@
 
                     <div class="row">
                         <div class="col-md-7 mb-3">
-                            <label for="expenseMonto" class="form-label">Monto (S/)</label>
+                            <label for="expenseMonto" class="form-label">Monto</label>
                             <input type="number" id="expenseMonto" class="form-control" required
                                    step="0.01" min="0.01" placeholder="0.00">
                         </div>
