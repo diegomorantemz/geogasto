@@ -233,13 +233,13 @@ java -jar target/geogasto-0.0.1-SNAPSHOT.jar
 | `DB_URL` | URL JDBC de PostgreSQL | — |
 | `DB_USER` | Usuario de la base de datos | — |
 | `DB_PASSWORD` | Contraseña de la base de datos | — |
-| `jwt.secret` | Clave para firmar los JWT | valor de desarrollo |
+| `JWT_SECRET` | Clave para firmar los JWT (mínimo 256 bits) | — |
 | `jwt.expiration` | Vigencia del token en ms | `86400000` (24 h) |
 | `nominatim.base-url` | URL de Nominatim | `https://nominatim.openstreetmap.org` |
 | `server.port` | Puerto HTTP | `8080` |
 
-> Para producción, define `jwt.secret` mediante una variable de entorno y usa una
-> clave aleatoria de al menos 256 bits.
+> Genera `JWT_SECRET` con una clave aleatoria de al menos 256 bits, por ejemplo:
+> `openssl rand -base64 48`. No reutilices la clave de ejemplo en producción.
 
 ---
 

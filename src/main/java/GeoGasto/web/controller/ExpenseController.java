@@ -7,7 +7,9 @@ import GeoGasto.domain.service.ExpenseService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -17,11 +19,16 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.List;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/api/expenses")
 @RequiredArgsConstructor
 public class ExpenseController {
+
+    private static final Set<String> CAMPOS_ORDENABLES = Set.of("fecha", "monto", "descripcion", "createdAt");
+    private static final int TAMANO_MAXIMO_PAGINA = 100;
 
     private final ExpenseService expenseService;
 
@@ -33,7 +40,7 @@ public class ExpenseController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hasta,
             @RequestParam(required = false) Long categoryId
     ) {
-        return ResponseEntity.ok(expenseService.listar(auth.getName(), pageable, desde, hasta, categoryId));
+        return ResponseEntity.ok(expenseService.listar(auth.getName(), sanitizar(pageable), desde, hasta, categoryId));
     }
 
     @GetMapping("/export")
@@ -86,5 +93,23 @@ public class ExpenseController {
     public ResponseEntity<Void> eliminar(Authentication auth, @PathVariable Long id) {
         expenseService.eliminar(auth.getName(), id);
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Evita que un cliente pida páginas gigantes o intente ordenar por campos no permitidos.
+     */
+    private Pageable sanitizar(Pageable pageable) {
+        int pagina = Math.max(pageable.getPageNumber(), 0);
+        int tamano = Math.min(Math.max(pageable.getPageSize(), 1), TAMANO_MAXIMO_PAGINA);
+
+        List<Sort.Order> ordenes = pageable.getSort().stream()
+                .filter(orden -> CAMPOS_ORDENABLES.contains(orden.getProperty()))
+                .toList();
+
+        Sort sort = ordenes.isEmpty()
+                ? Sort.by(Sort.Direction.DESC, "fecha")
+                : Sort.by(ordenes);
+
+        return PageRequest.of(pagina, tamano, sort);
     }
 }
