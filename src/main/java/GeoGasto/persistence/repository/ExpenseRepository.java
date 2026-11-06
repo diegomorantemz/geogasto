@@ -16,4 +16,6 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long>, JpaSpec
     Page<Expense> findByUserId(Long userId, Pageable pageable);
 
     List<Expense> findByUserIdAndFechaBetween(Long userId, LocalDate desde, LocalDate hasta);
+
+    boolean existsByLocationId(Long locationId);
 }

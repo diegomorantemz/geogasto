@@ -11,6 +11,7 @@ import GeoGasto.persistence.entity.User;
 import GeoGasto.persistence.repository.CategoryRepository;
 import GeoGasto.persistence.repository.ExpenseRepository;
 import GeoGasto.persistence.repository.LocationRepository;
+import GeoGasto.persistence.repository.SavedPlaceRepository;
 import GeoGasto.persistence.repository.UserRepository;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +35,7 @@ public class ExpenseService {
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
     private final LocationRepository locationRepository;
+    private final SavedPlaceRepository savedPlaceRepository;
 
     @Transactional(readOnly = true)
     public Page<ExpenseResponse> listar(String email, Pageable pageable) {
@@ -143,8 +145,13 @@ public class ExpenseService {
             throw new ResourceNotFoundException("Gasto no encontrado");
         }
 
+        Location ubicacionAnterior = expense.getLocation();
+
         aplicarDatos(expense, request, user);
-        return toResponse(expenseRepository.save(expense));
+        ExpenseResponse response = toResponse(expenseRepository.save(expense));
+        expenseRepository.flush();
+        eliminarUbicacionSiHuerfana(ubicacionAnterior);
+        return response;
     }
 
     @Transactional
@@ -156,7 +163,23 @@ public class ExpenseService {
         if (!expense.getUser().getId().equals(user.getId())) {
             throw new ResourceNotFoundException("Gasto no encontrado");
         }
+
+        Location ubicacion = expense.getLocation();
         expenseRepository.delete(expense);
+        expenseRepository.flush();
+        eliminarUbicacionSiHuerfana(ubicacion);
+    }
+
+    private void eliminarUbicacionSiHuerfana(Location location) {
+        if (location == null) {
+            return;
+        }
+
+        boolean usadaPorGasto = expenseRepository.existsByLocationId(location.getId());
+        boolean usadaPorLugar = savedPlaceRepository.existsByLocationId(location.getId());
+        if (!usadaPorGasto && !usadaPorLugar) {
+            locationRepository.delete(location);
+        }
     }
 
     private void aplicarDatos(Expense expense, ExpenseRequest request, User user) {

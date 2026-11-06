@@ -15,4 +15,6 @@ public interface SavedPlaceRepository extends JpaRepository<SavedPlace, Long> {
     Optional<SavedPlace> findByUserIdAndAlias(Long userId, String alias);
 
     boolean existsByUserIdAndAlias(Long userId, String alias);
+
+    boolean existsByLocationId(Long locationId);
 }
