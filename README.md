@@ -55,7 +55,7 @@ de desarrollo backend con Spring Boot y arquitectura REST.
 ### Ubicaciones (feature principal)
 - **GPS actual**: obtiene la ubicación del navegador y la convierte en dirección.
 - **Búsqueda por nombre**: autocompletado con lugares reales (Nominatim/OpenStreetMap).
-- **Selección en mapa**: clic en el mapa Leaflet para marcar un punto exacto.
+- **Selección en mapa**: clic en el mapa MapLibre para marcar un punto exacto.
 - **Lugares guardados**: alias como "Casa" o "Trabajo" para usar en un clic.
 
 ### Dashboard
@@ -103,7 +103,8 @@ El proyecto sigue una arquitectura en capas clásica de Spring Boot:
 
 Servicios externos:
 - **Nominatim (OpenStreetMap)**: geocodificación (búsqueda y reverse).
-- **OpenStreetMap tiles**: renderizado del mapa (Leaflet).
+- **OpenFreeMap**: tiles vectoriales del mapa (estilos Liberty, Bright, Positron, etc.).
+- **MapLibre GL JS**: renderizado interactivo del mapa en el navegador.
 
 ---
 
@@ -132,7 +133,8 @@ Servicios externos:
 | Bootstrap 5.3 | Framework CSS responsive |
 | Bootstrap Icons | Iconografía |
 | JavaScript (vanilla) | Lógica de cliente |
-| Leaflet 1.9 | Mapas interactivos |
+| MapLibre GL JS 5.24 | Mapas vectoriales interactivos |
+| OpenFreeMap | Tiles vectoriales gratuitos (sin API key) |
 | Chart.js 4.4 | Gráficos del dashboard |
 
 ### Base de datos
@@ -449,7 +451,9 @@ El workflow `.github/workflows/ci.yml` se ejecuta en cada push a `master` o
 - **Aislamiento por usuario**: cada consulta filtra por el usuario autenticado.
 - **Flyway** como única fuente del esquema; Hibernate solo valida (`ddl-auto=validate`).
 - **Filtros en base de datos** mediante `Specification`, no en el navegador.
-- **Nominatim/OpenStreetMap** para geocodificación y **Leaflet** para el mapa.
+- **Nominatim/OpenStreetMap** para geocodificación y **MapLibre GL JS +
+  OpenFreeMap** para el mapa. No requiere token ni registro; la atribución se
+  muestra automáticamente.
 - **Chart.js** para las gráficas del dashboard.
 
 ### Limitaciones conocidas y siguientes pasos
