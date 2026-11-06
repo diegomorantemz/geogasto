@@ -37,7 +37,7 @@ public class SavedPlaceService {
             throw new IllegalArgumentException("Ya tienes un lugar guardado con ese alias");
         }
 
-        Location location = locationRepository.findById(locationId)
+        Location location = locationRepository.findByIdAndUserId(locationId, user.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Ubicación no encontrada"));
 
         SavedPlace place = SavedPlace.builder()

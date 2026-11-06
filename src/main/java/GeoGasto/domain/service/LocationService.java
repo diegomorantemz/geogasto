@@ -4,7 +4,9 @@ import GeoGasto.domain.dto.location.LocationRequest;
 import GeoGasto.domain.dto.location.LocationResponse;
 import GeoGasto.domain.exception.ResourceNotFoundException;
 import GeoGasto.persistence.entity.Location;
+import GeoGasto.persistence.entity.User;
 import GeoGasto.persistence.repository.LocationRepository;
+import GeoGasto.persistence.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,16 +16,20 @@ import org.springframework.transaction.annotation.Transactional;
 public class LocationService {
 
     private final LocationRepository locationRepository;
+    private final UserRepository userRepository;
 
     @Transactional(readOnly = true)
-    public LocationResponse obtener(Long id) {
-        Location location = locationRepository.findById(id)
+    public LocationResponse obtener(String email, Long id) {
+        User user = obtenerUsuario(email);
+        Location location = locationRepository.findByIdAndUserId(id, user.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Ubicación no encontrada"));
         return toResponse(location);
     }
 
     @Transactional
-    public LocationResponse crear(LocationRequest request) {
+    public LocationResponse crear(String email, LocationRequest request) {
+        User user = obtenerUsuario(email);
+
         Location location = Location.builder()
                 .direccion(request.getDireccion())
                 .latitud(request.getLatitud())
@@ -31,13 +37,15 @@ public class LocationService {
                 .ciudad(request.getCiudad())
                 .pais(request.getPais())
                 .placeId(request.getPlaceId())
+                .user(user)
                 .build();
         return toResponse(locationRepository.save(location));
     }
 
     @Transactional
-    public LocationResponse actualizar(Long id, LocationRequest request) {
-        Location location = locationRepository.findById(id)
+    public LocationResponse actualizar(String email, Long id, LocationRequest request) {
+        User user = obtenerUsuario(email);
+        Location location = locationRepository.findByIdAndUserId(id, user.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Ubicación no encontrada"));
 
         location.setDireccion(request.getDireccion());
@@ -48,6 +56,11 @@ public class LocationService {
         location.setPlaceId(request.getPlaceId());
 
         return toResponse(locationRepository.save(location));
+    }
+
+    private User obtenerUsuario(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
     }
 
     public LocationResponse toResponse(Location location) {

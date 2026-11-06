@@ -108,6 +108,7 @@ public class ExpenseService {
                     .ciudad(request.getLocationCiudad())
                     .pais(request.getLocationPais())
                     .placeId(request.getLocationPlaceId())
+                    .user(user)
                     .build();
             location = locationRepository.save(location);
         }
@@ -175,7 +176,7 @@ public class ExpenseService {
         }
 
         if (request.getLocationId() != null) {
-            Location location = locationRepository.findById(request.getLocationId())
+            Location location = locationRepository.findByIdAndUserId(request.getLocationId(), user.getId())
                     .orElseThrow(() -> new ResourceNotFoundException("Ubicación no encontrada"));
             expense.setLocation(location);
         } else {
