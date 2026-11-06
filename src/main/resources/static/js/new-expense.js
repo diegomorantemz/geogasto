@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (email) document.getElementById('userEmail').textContent = email;
 
     // Default date = today
-    document.getElementById('fecha').value = new Date().toISOString().split('T')[0];
+    document.getElementById('fecha').value = todayLocalISO();
 
     await loadCategories();
     await loadSavedPlaces();

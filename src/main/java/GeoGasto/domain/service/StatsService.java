@@ -34,11 +34,19 @@ public class StatsService {
         LocalDate desde = hasta.minusMonths(11).withDayOfMonth(1);
         List<Expense> gastos = expenseRepository.findByUserIdAndFechaBetween(user.getId(), desde, hasta);
 
-        BigDecimal totalMes = calcularTotalMes(gastos);
-        List<StatsResponse.CategoryStat> porCategoria = calcularPorCategoria(gastos);
+        YearMonth mesActual = YearMonth.now();
+        List<Expense> gastosMes = gastos.stream()
+                .filter(e -> YearMonth.from(e.getFecha()).equals(mesActual))
+                .toList();
+
+        BigDecimal totalMes = gastosMes.stream()
+                .map(Expense::getMonto)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        List<StatsResponse.CategoryStat> porCategoria = calcularPorCategoria(gastosMes);
         List<StatsResponse.MonthStat> porMes = calcularPorMes(gastos);
 
-        long cantidadCategorias = gastos.stream()
+        long cantidadCategorias = gastosMes.stream()
                 .map(e -> e.getCategory() != null ? e.getCategory().getId() : null)
                 .filter(Objects::nonNull)
                 .distinct()
@@ -46,28 +54,16 @@ public class StatsService {
 
         return StatsResponse.builder()
                 .totalMes(totalMes)
-                .cantidadGastos((long) gastos.size())
+                .cantidadGastos((long) gastosMes.size())
                 .cantidadCategorias(cantidadCategorias)
                 .gastosPorCategoria(porCategoria)
                 .gastosPorMes(porMes)
                 .build();
     }
 
-    private BigDecimal calcularTotalMes(List<Expense> gastos) {
-        YearMonth mesActual = YearMonth.now();
-        return gastos.stream()
-                .filter(e -> YearMonth.from(e.getFecha()).equals(mesActual))
-                .map(Expense::getMonto)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-    }
-
     private List<StatsResponse.CategoryStat> calcularPorCategoria(List<Expense> gastos) {
-        YearMonth mesActual = YearMonth.now();
-
         Map<String, StatsResponse.CategoryStat> map = new LinkedHashMap<>();
         for (Expense e : gastos) {
-            if (!YearMonth.from(e.getFecha()).equals(mesActual)) continue;
-
             String nombre = e.getCategory() != null ? e.getCategory().getNombre() : "Sin categoría";
             String color = e.getCategory() != null ? e.getCategory().getColor() : "#adb5bd";
 
@@ -92,10 +88,18 @@ public class StatsService {
         DateTimeFormatter inputFmt = DateTimeFormatter.ofPattern("yyyy-MM");
         DateTimeFormatter labelFmt = DateTimeFormatter.ofPattern("MMM yyyy", new Locale("es", "PE"));
 
+        // Siempre devolvemos los últimos 12 meses, aunque algún mes no tenga gastos.
+        YearMonth inicio = YearMonth.now().minusMonths(11);
         Map<YearMonth, BigDecimal> totales = new TreeMap<>();
+        for (int i = 0; i < 12; i++) {
+            totales.put(inicio.plusMonths(i), BigDecimal.ZERO);
+        }
+
         for (Expense e : gastos) {
             YearMonth ym = YearMonth.from(e.getFecha());
-            totales.merge(ym, e.getMonto(), BigDecimal::add);
+            if (totales.containsKey(ym)) {
+                totales.merge(ym, e.getMonto(), BigDecimal::add);
+            }
         }
 
         return totales.entrySet().stream()

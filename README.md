@@ -58,9 +58,9 @@ de desarrollo backend con Spring Boot y arquitectura REST.
 
 ### Dashboard
 - Total gastado en el mes actual.
-- Cantidad de gastos y categorías usadas.
+- Cantidad de gastos y categorías usadas en el mes actual.
 - Gráfico de dona: distribución por categoría (mes actual).
-- Gráfico de barras: evolución mensual (últimos 12 meses).
+- Gráfico de barras: evolución de los últimos 12 meses (incluye meses sin gastos).
 
 ### Seguridad
 - Autenticación con JWT (JSON Web Tokens).
@@ -382,10 +382,9 @@ src/main/resources/
 
 ### Limitaciones conocidas y siguientes pasos
 
-- Las ubicaciones aún no tienen `user_id`; conviene validar la propiedad para
-  cerrar un posible IDOR.
-- Añadir pruebas con Testcontainers para no depender de una base local.
-- Mover `jwt.secret` a una variable de entorno en producción.
+- Ampliar las pruebas (servicios y controladores) y usar Testcontainers para no
+  depender de una base local.
+- Limpiar ubicaciones que queden huérfanas al eliminar gastos.
 - Agregar Docker Compose y un pipeline de CI.
 
 ---

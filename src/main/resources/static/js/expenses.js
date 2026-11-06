@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     expenseModal = new bootstrap.Modal(document.getElementById('expenseModal'));
 
     // Default date = today
-    document.getElementById('expenseFecha').value = new Date().toISOString().split('T')[0];
+    document.getElementById('expenseFecha').value = todayLocalISO();
 
     await loadCategories();
     await loadExpenses();
@@ -156,7 +156,7 @@ function renderTable(items) {
 function openNewExpenseModal() {
     document.getElementById('expenseForm').reset();
     document.getElementById('expenseId').value = '';
-    document.getElementById('expenseFecha').value = new Date().toISOString().split('T')[0];
+    document.getElementById('expenseFecha').value = todayLocalISO();
     document.getElementById('expenseModalTitle').textContent = 'Nuevo gasto';
     expenseModal.show();
 }
