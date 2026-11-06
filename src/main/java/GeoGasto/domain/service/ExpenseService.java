@@ -12,11 +12,19 @@ import GeoGasto.persistence.repository.CategoryRepository;
 import GeoGasto.persistence.repository.ExpenseRepository;
 import GeoGasto.persistence.repository.LocationRepository;
 import GeoGasto.persistence.repository.UserRepository;
+import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -29,9 +37,41 @@ public class ExpenseService {
 
     @Transactional(readOnly = true)
     public Page<ExpenseResponse> listar(String email, Pageable pageable) {
+        return listar(email, pageable, null, null, null);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<ExpenseResponse> listar(String email, Pageable pageable,
+                                        LocalDate desde, LocalDate hasta, Long categoryId) {
         User user = obtenerUsuario(email);
-        return expenseRepository.findByUserId(user.getId(), pageable)
+        return expenseRepository.findAll(filtros(user.getId(), desde, hasta, categoryId), pageable)
                 .map(this::toResponse);
+    }
+
+    @Transactional(readOnly = true)
+    public byte[] exportarCsv(String email, LocalDate desde, LocalDate hasta, Long categoryId) {
+        User user = obtenerUsuario(email);
+        List<Expense> gastos = expenseRepository.findAll(
+                filtros(user.getId(), desde, hasta, categoryId),
+                Sort.by(Sort.Direction.DESC, "fecha"));
+
+        StringBuilder sb = new StringBuilder();
+        sb.append('\uFEFF'); // BOM para que Excel reconozca UTF-8
+        sb.append("Fecha,Descripcion,Categoria,Monto,Ubicacion,Ciudad,Pais\n");
+
+        for (Expense e : gastos) {
+            Location l = e.getLocation();
+            sb.append(csv(e.getFecha().toString())).append(',')
+                    .append(csv(e.getDescripcion())).append(',')
+                    .append(csv(e.getCategory() != null ? e.getCategory().getNombre() : "")).append(',')
+                    .append(csv(e.getMonto().toPlainString())).append(',')
+                    .append(csv(l != null ? l.getDireccion() : "")).append(',')
+                    .append(csv(l != null ? l.getCiudad() : "")).append(',')
+                    .append(csv(l != null ? l.getPais() : ""))
+                    .append('\n');
+        }
+
+        return sb.toString().getBytes(StandardCharsets.UTF_8);
     }
 
     @Transactional(readOnly = true)
@@ -141,6 +181,37 @@ public class ExpenseService {
         } else {
             expense.setLocation(null);
         }
+    }
+
+    private Specification<Expense> filtros(Long userId, LocalDate desde, LocalDate hasta, Long categoryId) {
+        return (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            predicates.add(cb.equal(root.get("user").get("id"), userId));
+
+            if (desde != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("fecha"), desde));
+            }
+            if (hasta != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("fecha"), hasta));
+            }
+            if (categoryId != null) {
+                predicates.add(cb.equal(root.get("category").get("id"), categoryId));
+            }
+
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+    }
+
+    private static String csv(String value) {
+        if (value == null) {
+            return "";
+        }
+        String escaped = value.replace("\"", "\"\"");
+        if (escaped.contains(",") || escaped.contains("\"")
+                || escaped.contains("\n") || escaped.contains("\r")) {
+            return "\"" + escaped + "\"";
+        }
+        return escaped;
     }
 
     private User obtenerUsuario(String email) {

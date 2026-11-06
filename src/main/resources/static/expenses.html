@@ -57,9 +57,14 @@
             <h2 class="mb-1">Mis gastos</h2>
             <p class="text-muted mb-0">Registra y consulta tus gastos</p>
         </div>
-        <button class="btn btn-primary" onclick="openNewExpenseModal()">
-            <i class="bi bi-plus-circle"></i> Nuevo gasto
-        </button>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-primary" onclick="exportExpenses()">
+                <i class="bi bi-download"></i> Exportar CSV
+            </button>
+            <button class="btn btn-primary" onclick="openNewExpenseModal()">
+                <i class="bi bi-plus-circle"></i> Nuevo gasto
+            </button>
+        </div>
     </div>
 
     <!-- Alerts -->

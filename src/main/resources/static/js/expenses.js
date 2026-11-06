@@ -46,15 +46,9 @@ async function loadExpenses() {
     tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-muted">Cargando gastos...</td></tr>`;
 
     try {
-        const params = new URLSearchParams();
-        params.set('page', currentPage);
-        params.set('size', PAGE_SIZE);
-        params.set('sort', 'fecha,desc');
+        const page = await api.get('/expenses?' + buildFilterParams().toString());
 
-        // Filters (only apply locally for now; backend filter endpoint comes later)
-        const page = await api.get('/expenses?' + params.toString());
-
-        renderTable(applyLocalFilters(page.content || []));
+        renderTable(page.content || []);
 
         totalPages = page.totalPages || 1;
         document.getElementById('pageInfo').textContent =
@@ -70,17 +64,58 @@ async function loadExpenses() {
     }
 }
 
-function applyLocalFilters(items) {
+function buildFilterParams() {
+    const params = new URLSearchParams();
+    params.set('page', currentPage);
+    params.set('size', PAGE_SIZE);
+    params.set('sort', 'fecha,desc');
+
     const from = document.getElementById('filterFrom').value;
     const to = document.getElementById('filterTo').value;
     const categoryId = document.getElementById('filterCategory').value;
 
-    return items.filter(e => {
-        if (from && e.fecha < from) return false;
-        if (to && e.fecha > to) return false;
-        if (categoryId && String(e.categoryId) !== String(categoryId)) return false;
-        return true;
-    });
+    if (from) params.set('desde', from);
+    if (to) params.set('hasta', to);
+    if (categoryId) params.set('categoryId', categoryId);
+
+    return params;
+}
+
+async function exportExpenses() {
+    const params = buildFilterParams();
+    params.delete('page');
+    params.delete('size');
+    params.delete('sort');
+
+    try {
+        const response = await fetch('/api/expenses/export?' + params.toString(), {
+            headers: { Authorization: 'Bearer ' + getToken() }
+        });
+
+        if (response.status === 401 || response.status === 403) {
+            localStorage.removeItem('geogasto_token');
+            localStorage.removeItem('geogasto_email');
+            window.location.href = '/login.html';
+            return;
+        }
+        if (!response.ok) {
+            throw new Error('No se pudo exportar el archivo');
+        }
+
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'gastos.csv';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+
+        showSuccess('Archivo exportado');
+    } catch (err) {
+        showError(err.message);
+    }
 }
 
 function renderTable(items) {
