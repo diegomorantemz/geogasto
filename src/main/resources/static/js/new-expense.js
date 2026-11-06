@@ -1,5 +1,9 @@
 // New expense with location
 
+const MAP_STYLE = 'https://tiles.openfreemap.org/styles/liberty';
+const MAP_CENTER = [-77.0428, -12.0464]; // [longitud, latitud]
+const MAP_ZOOM = 12;
+
 let map;
 let marker;
 let selectedLocation = null;
@@ -117,30 +121,39 @@ async function saveAsFavorite() {
 
 // ===== Map =====
 function initMap() {
-    map = L.map('map').setView([-12.0464, -77.0428], 12);
+    map = new maplibregl.Map({
+        container: 'map',
+        style: MAP_STYLE,
+        center: MAP_CENTER,
+        zoom: MAP_ZOOM
+    });
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-        attribution: '© OpenStreetMap'
-    }).addTo(map);
+    map.addControl(new maplibregl.NavigationControl(), 'top-right');
 
     map.on('click', async (ev) => {
-        const { lat, lng } = ev.latlng;
-        await reverseGeocode(lat, lng);
+        await reverseGeocode(ev.lngLat.lat, ev.lngLat.lng);
+    });
+
+    map.on('error', (ev) => {
+        console.error('Error en el mapa:', ev.error);
     });
 }
 
 function setMarker(lat, lon) {
     if (marker) {
-        marker.setLatLng([lat, lon]);
+        marker.setLngLat([lon, lat]);
     } else {
-        marker = L.marker([lat, lon], { draggable: true }).addTo(map);
+        marker = new maplibregl.Marker({ draggable: true })
+            .setLngLat([lon, lat])
+            .addTo(map);
+
         marker.on('dragend', async () => {
-            const pos = marker.getLatLng();
+            const pos = marker.getLngLat();
             await reverseGeocode(pos.lat, pos.lng);
         });
     }
-    map.setView([lat, lon], 16);
+
+    map.flyTo({ center: [lon, lat], zoom: 16 });
 }
 
 // ===== Current location =====
@@ -260,7 +273,7 @@ function updateLocationDisplay() {
 function clearLocation() {
     selectedLocation = null;
     if (marker) {
-        map.removeLayer(marker);
+        marker.remove();
         marker = null;
     }
     updateLocationDisplay();
