@@ -25,8 +25,11 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:?Define DB_PASSWORD en .env}
       JWT_SECRET: ${JWT_SECRET:?Define JWT_SECRET en .env}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+      APP_UPLOADS_DIR: /app/uploads
     ports:
       - "${APP_PORT:-8080}:8080"
+    volumes:
+      - geogasto-uploads:/app/uploads
     depends_on:
       db:
         condition: service_healthy
@@ -39,3 +42,4 @@ services:
 
 volumes:
   geogasto-db:
+  geogasto-uploads:

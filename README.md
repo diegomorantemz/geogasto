@@ -112,6 +112,12 @@ de desarrollo backend con Spring Boot y arquitectura REST.
 - Próximos vencimientos visibles en el dashboard.
 - Monto mensual estimado de las recurrencias activas.
 
+### Comprobantes
+- Adjuntar una imagen JPG/PNG/WebP o un PDF a cada gasto.
+- Validación de tipo MIME, firma del archivo y tamaño máximo de 5 MB.
+- Ver, reemplazar o quitar el comprobante desde la lista de gastos.
+- Almacenamiento local configurable y volumen Docker para persistencia.
+
 ### Mapa de gastos
 - Vista dedicada `/map.html` con MapLibre GL JS.
 - Agrupación de marcadores (clusters) y popups con el detalle de cada gasto.
@@ -355,6 +361,8 @@ docker compose down -v
 | `app.seed-default-categories` | Crear categorías iniciales al registrarse | `true` |
 | `app.recurring.cron` | Cron diario de generación de recurrentes | `0 10 3 * * *` |
 | `app.recurring.max-per-run` | Máximo de gastos generados por recurrencia y ejecución | `120` |
+| `app.uploads.dir` | Carpeta donde se guardan los comprobantes | `uploads/receipts` |
+| `app.uploads.max-bytes` | Tamaño máximo de un comprobante | `5242880` (5 MB) |
 | `rate-limit.max-requests` | Intentos permitidos en login/registro por ventana | `20` |
 | `rate-limit.window-seconds` | Ventana del límite de intentos | `60` |
 | `server.port` | Puerto HTTP | `8080` |
@@ -454,6 +462,16 @@ los gastos con latitud/longitud para dibujarlos en el mapa (máximo 5000).
 | `GET` | `/api/geocode/search?q=...` | Buscar lugares por nombre |
 | `GET` | `/api/geocode/reverse?lat=...&lon=...` | Obtener dirección desde coordenadas |
 
+### Comprobantes
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| `POST` | `/api/expenses/{expenseId}/receipt` | Subir o reemplazar un comprobante (`multipart/form-data`, campo `file`) |
+| `GET` | `/api/expenses/{expenseId}/receipt` | Ver o descargar el comprobante |
+| `DELETE` | `/api/expenses/{expenseId}/receipt` | Eliminar el comprobante |
+
+Formatos permitidos: JPG, PNG, WebP y PDF. Tamaño máximo: 5 MB.
+
 ### Ingresos
 
 | Método | Ruta | Descripción |
@@ -537,15 +555,16 @@ docker-compose.yml        # PostgreSQL + aplicación
    - O usa un lugar guardado ("Casa", "Trabajo", etc.).
 4. **Consulta, busca y filtra** tus gastos en `/expenses.html` por fecha,
    categoría y descripción.
-5. **Exporta** el listado filtrado a CSV.
-6. **Registra tus ingresos** en `/incomes.html` para calcular balance y tasa de ahorro.
-7. **Define presupuestos** en `/budgets.html` y revisa las alertas del dashboard.
-8. **Configura gastos recurrentes** en `/recurring.html`; los vencidos se generan
+5. **Adjunta comprobantes** (imagen o PDF) desde el botón de clip de cada gasto.
+6. **Exporta** el listado filtrado a CSV.
+7. **Registra tus ingresos** en `/incomes.html` para calcular balance y tasa de ahorro.
+8. **Define presupuestos** en `/budgets.html` y revisa las alertas del dashboard.
+9. **Configura gastos recurrentes** en `/recurring.html`; los vencidos se generan
    automáticamente y también puedes generarlos manualmente.
-9. **Explora el mapa** en `/map.html`: clusters, colores por categoría y total
-   filtrado.
-10. **Gestiona tus lugares** en `/places.html` y tu cuenta en `/profile.html`.
-11. **Revisa el dashboard** en `/index.html`: total del mes, ingresos, balance,
+10. **Explora el mapa** en `/map.html`: clusters, colores por categoría y total
+    filtrado.
+11. **Gestiona tus lugares** en `/places.html` y tu cuenta en `/profile.html`.
+12. **Revisa el dashboard** en `/index.html`: total del mes, ingresos, balance,
     comparación mensual, presupuesto, próximos recurrentes y evolución de 12 meses.
 
 ---
@@ -560,6 +579,7 @@ El proyecto incluye:
 - La aplicación espera a que PostgreSQL esté listo antes de arrancar.
 - `DB_PASSWORD` y `JWT_SECRET` son obligatorios: el compose falla con un mensaje
   claro si faltan en `.env`.
+- Volumen `geogasto-uploads` para persistir los comprobantes adjuntos.
 
 Comandos útiles:
 
@@ -580,7 +600,7 @@ El workflow `.github/workflows/ci.yml` se ejecuta en cada push a `master` o
 1. Configura Java 17.
 2. Ejecuta `./mvnw -B verify` (pruebas + reporte JaCoCo).
 3. Testcontainers levanta PostgreSQL 16 dentro del runner de GitHub Actions.
-4. Publica los reportes de tests y cobertura como artefactos (cobertura actual ~75 %).
+4. Publica los reportes de tests y cobertura como artefactos (cobertura actual ~74 %).
 5. Construye la imagen Docker para validar el empaquetado.
 
 ---
@@ -602,6 +622,8 @@ El workflow `.github/workflows/ci.yml` se ejecuta en cada push a `master` o
   Nominatim.
 - **Rate limiting en memoria** para login/registro. En un despliegue con varias
   instancias habría que moverlo a Redis o similar.
+- **Comprobantes** con validación de MIME, firma del archivo y límite de 5 MB;
+  el nombre se genera con UUID para evitar colisiones y path traversal.
 - **CSP, X-Frame-Options y Referrer-Policy** como cabeceras de seguridad.
 - **Perfiles dev/prod** para separar logs SQL y Swagger de la configuración
   pública.
@@ -611,7 +633,7 @@ El workflow `.github/workflows/ci.yml` se ejecuta en cada push a `master` o
 
 - Ampliar la cobertura con pruebas unitarias de servicios y controladores.
 - Notificaciones por email cuando un presupuesto esté por excederse.
-- Adjuntar comprobantes (imágenes/PDF).
+- Almacenamiento de comprobantes en S3/objeto para despliegues multi-instancia.
 - Importación de extractos bancarios y exportación a PDF.
 - Internacionalización completa de textos y formatos.
 - Despliegue con HTTPS y proxy inverso para uso público.

@@ -1,12 +1,16 @@
 // Expenses page logic
 
 let expenseModal;
+let receiptModal;
 let categories = [];
 let currentPage = 0;
 const PAGE_SIZE = 10;
 let totalPages = 1;
 let lastPageSize = 0;
 let submitting = false;
+let receiptExpenseId = null;
+let receiptFileName = null;
+let receiptSubmitting = false;
 
 document.addEventListener('DOMContentLoaded', async () => {
     if (!requireLogin()) return;
@@ -14,6 +18,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await ensureProfile();
 
     expenseModal = new bootstrap.Modal(document.getElementById('expenseModal'));
+    receiptModal = new bootstrap.Modal(document.getElementById('receiptModal'));
 
     const hoy = todayLocalISO();
     document.getElementById('expenseFecha').value = hoy;
@@ -138,7 +143,10 @@ function renderTable(items) {
     tbody.innerHTML = items.map(e => `
         <tr>
             <td class="text-muted small text-nowrap">${formatDate(e.fecha)}</td>
-            <td class="fw-semibold">${escapeHtml(e.descripcion || '-')}</td>
+            <td class="fw-semibold">
+                ${escapeHtml(e.descripcion || '-')}
+                ${e.receiptId ? '<i class="bi bi-paperclip text-primary ms-1" title="Tiene comprobante"></i>' : ''}
+            </td>
             <td>
                 ${e.categoryNombre
                     ? `<span class="badge bg-secondary">${escapeHtml(e.categoryNombre)}</span>`
@@ -154,6 +162,10 @@ function renderTable(items) {
             </td>
             <td class="text-end fw-bold text-nowrap">${formatMoney(e.monto)}</td>
             <td class="text-end text-nowrap">
+                <button class="btn btn-sm btn-outline-secondary me-1" onclick="openReceipt(${e.id})"
+                        aria-label="Comprobante" title="${e.receiptId ? 'Ver comprobante' : 'Adjuntar comprobante'}">
+                    <i class="bi bi-paperclip"></i>
+                </button>
                 <button class="btn btn-sm btn-outline-primary me-1" onclick="editExpense(${e.id})"
                         aria-label="Editar gasto" title="Editar">
                     <i class="bi bi-pencil"></i>
@@ -300,6 +312,152 @@ function clearFilters() {
     document.getElementById('filterText').value = '';
     currentPage = 0;
     loadExpenses();
+}
+
+// ===== Receipt =====
+async function openReceipt(id) {
+    try {
+        const expense = await api.get('/expenses/' + id);
+        receiptExpenseId = id;
+        receiptFileName = expense.receiptNombre || null;
+
+        document.getElementById('receiptExpenseId').value = id;
+        document.getElementById('receiptForm').reset();
+        document.getElementById('receiptModalTitle').textContent =
+            'Comprobante: ' + (expense.descripcion || 'Gasto');
+
+        const existing = document.getElementById('receiptExisting');
+        const empty = document.getElementById('receiptEmpty');
+        if (expense.receiptId) {
+            existing.classList.remove('d-none');
+            empty.classList.add('d-none');
+            document.getElementById('receiptNombre').textContent = expense.receiptNombre || 'comprobante';
+            document.getElementById('receiptTamano').textContent = expense.receiptTamano
+                ? '(' + formatBytes(expense.receiptTamano) + ')'
+                : '';
+        } else {
+            existing.classList.add('d-none');
+            empty.classList.remove('d-none');
+        }
+
+        receiptModal.show();
+    } catch (err) {
+        showError(err.message);
+    }
+}
+
+async function viewReceipt() {
+    if (!receiptExpenseId) return;
+
+    try {
+        const response = await fetch('/api/expenses/' + receiptExpenseId + '/receipt', {
+            headers: { Authorization: 'Bearer ' + getToken() }
+        });
+        if (response.status === 401) {
+            logout();
+            return;
+        }
+        if (!response.ok) {
+            throw new Error('No se pudo abrir el comprobante');
+        }
+
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const tab = window.open(url, '_blank');
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
+        if (!tab) {
+            showError('El navegador bloqueó la pestaña del comprobante');
+        }
+    } catch (err) {
+        showError(err.message);
+    }
+}
+
+async function deleteReceipt() {
+    if (!receiptExpenseId) return;
+    if (!confirm('¿Quitar el comprobante de este gasto?')) return;
+
+    try {
+        await api.delete('/expenses/' + receiptExpenseId + '/receipt');
+        receiptModal.hide();
+        showSuccess('Comprobante eliminado');
+        await loadExpenses();
+    } catch (err) {
+        showError(err.message);
+    }
+}
+
+async function handleUploadReceipt(event) {
+    event.preventDefault();
+    if (receiptSubmitting || !receiptExpenseId) return;
+
+    const input = document.getElementById('receiptFile');
+    if (!input.files || input.files.length === 0) {
+        showError('Selecciona un archivo');
+        return;
+    }
+
+    const file = input.files[0];
+    if (file.size > 5 * 1024 * 1024) {
+        showError('El comprobante no puede superar 5 MB');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const btn = document.getElementById('receiptUploadBtn');
+    const original = btn.innerHTML;
+    receiptSubmitting = true;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Subiendo...';
+
+    try {
+        const response = await fetch('/api/expenses/' + receiptExpenseId + '/receipt', {
+            method: 'POST',
+            headers: { Authorization: 'Bearer ' + getToken() },
+            body: formData
+        });
+
+        if (response.status === 401) {
+            logout();
+            return;
+        }
+        if (!response.ok) {
+            throw new Error(await readErrorResponse(response));
+        }
+
+        receiptModal.hide();
+        showSuccess('Comprobante adjuntado');
+        await loadExpenses();
+    } catch (err) {
+        showError(err.message);
+    } finally {
+        receiptSubmitting = false;
+        btn.disabled = false;
+        btn.innerHTML = original;
+    }
+}
+
+async function readErrorResponse(response) {
+    try {
+        const data = await response.json();
+        if (data.errors) {
+            const first = Object.values(data.errors)[0];
+            if (first) return first;
+        }
+        if (data.message) return data.message;
+    } catch (ignored) {
+        // sin JSON
+    }
+    return 'No se pudo subir el comprobante (HTTP ' + response.status + ')';
+}
+
+function formatBytes(bytes) {
+    const value = Number(bytes || 0);
+    if (value < 1024) return value + ' B';
+    if (value < 1024 * 1024) return (value / 1024).toFixed(1) + ' KB';
+    return (value / (1024 * 1024)).toFixed(1) + ' MB';
 }
 
 // ===== Helpers =====

@@ -8,6 +8,7 @@ import GeoGasto.domain.exception.ResourceNotFoundException;
 import GeoGasto.persistence.entity.Category;
 import GeoGasto.persistence.entity.Expense;
 import GeoGasto.persistence.entity.Location;
+import GeoGasto.persistence.entity.Receipt;
 import GeoGasto.persistence.entity.User;
 import GeoGasto.persistence.repository.CategoryRepository;
 import GeoGasto.persistence.repository.ExpenseRepository;
@@ -43,6 +44,7 @@ public class ExpenseService {
     private final LocationRepository locationRepository;
     private final SavedPlaceRepository savedPlaceRepository;
     private final RecurringExpenseRepository recurringExpenseRepository;
+    private final ReceiptService receiptService;
 
     @Transactional(readOnly = true)
     public Page<ExpenseResponse> listar(String email, Pageable pageable) {
@@ -160,6 +162,7 @@ public class ExpenseService {
         Expense expense = obtenerPropio(user, id);
 
         Location ubicacion = expense.getLocation();
+        receiptService.eliminarArchivoDeGasto(expense.getId());
         expenseRepository.delete(expense);
         expenseRepository.flush();
         eliminarUbicacionSiHuerfana(ubicacion);
@@ -294,6 +297,7 @@ public class ExpenseService {
 
     private ExpenseResponse toResponse(Expense expense) {
         Location l = expense.getLocation();
+        Receipt r = expense.getReceipt();
         return ExpenseResponse.builder()
                 .id(expense.getId())
                 .monto(expense.getMonto())
@@ -307,6 +311,10 @@ public class ExpenseService {
                 .locationLongitud(l != null ? l.getLongitud() : null)
                 .locationCiudad(l != null ? l.getCiudad() : null)
                 .locationPais(l != null ? l.getPais() : null)
+                .receiptId(r != null ? r.getId() : null)
+                .receiptNombre(r != null ? r.getNombreOriginal() : null)
+                .receiptContentType(r != null ? r.getContentType() : null)
+                .receiptTamano(r != null ? r.getTamano() : null)
                 .createdAt(expense.getCreatedAt())
                 .build();
     }

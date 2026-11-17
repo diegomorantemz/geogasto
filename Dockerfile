@@ -20,7 +20,10 @@ RUN apt-get update \
 
 COPY --from=build /workspace/target/*.jar app.jar
 
+RUN mkdir -p /app/uploads && chown -R 1001:0 /app/uploads
+
 ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=75"
+ENV APP_UPLOADS_DIR=/app/uploads
 
 USER 1001
 EXPOSE 8080

@@ -33,5 +33,6 @@ public abstract class AbstractIntegrationTest {
         registry.add("jwt.secret",
                 () -> "test-secret-key-with-at-least-256-bits-for-jwt-signing-1234567890");
         registry.add("rate-limit.enabled", () -> "false");
+        registry.add("app.uploads.dir", () -> "target/test-uploads");
     }
 }

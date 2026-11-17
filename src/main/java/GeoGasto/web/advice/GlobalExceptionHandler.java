@@ -1,6 +1,7 @@
 package GeoGasto.web.advice;
 
 import GeoGasto.domain.exception.GeocodingException;
+import GeoGasto.domain.exception.ReceiptStorageException;
 import GeoGasto.domain.exception.ResourceNotFoundException;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.time.LocalDateTime;
@@ -45,6 +47,19 @@ public class GlobalExceptionHandler {
         log.warn("Servicio de geocodificación no disponible: {}", ex.getMessage());
         return buildResponse(HttpStatus.SERVICE_UNAVAILABLE,
                 "El servicio de mapas no está disponible en este momento. Intenta de nuevo.");
+    }
+
+    @ExceptionHandler(ReceiptStorageException.class)
+    public ResponseEntity<Map<String, Object>> handleReceiptStorage(ReceiptStorageException ex) {
+        log.error("Error almacenando comprobante", ex);
+        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR,
+                "No se pudo guardar o leer el comprobante. Intenta de nuevo.");
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<Map<String, Object>> handleMaxUpload(MaxUploadSizeExceededException ex) {
+        return buildResponse(HttpStatus.PAYLOAD_TOO_LARGE,
+                "El comprobante no puede superar 5 MB");
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)

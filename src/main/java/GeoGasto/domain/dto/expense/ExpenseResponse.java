@@ -30,5 +30,10 @@ public class ExpenseResponse {
     private String locationCiudad;
     private String locationPais;
 
+    private Long receiptId;
+    private String receiptNombre;
+    private String receiptContentType;
+    private Long receiptTamano;
+
     private LocalDateTime createdAt;
 }
