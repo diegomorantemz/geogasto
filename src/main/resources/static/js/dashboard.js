@@ -47,6 +47,7 @@ async function loadStats() {
         const stats = await api.get('/stats');
 
         setText('totalMes', formatMoney(stats.totalMes));
+        setText('totalIngresos', formatMoney(stats.totalIngresosMes));
         setText('cantidadGastos', stats.cantidadGastos ?? 0);
         setText('cantidadCategorias', stats.cantidadCategorias ?? 0);
         setText('cantidadLugares', stats.cantidadLugares ?? 0);
@@ -56,6 +57,7 @@ async function loadStats() {
         setText('categoriaTopTotal', stats.categoriaTopTotal != null
             ? formatMoney(stats.categoriaTopTotal)
             : '');
+        renderBalance(stats.balanceMes, stats.tasaAhorro);
         renderVariacion(stats.variacionPorcentual);
 
         renderCategoryChart(stats.gastosPorCategoria || []);
@@ -131,6 +133,22 @@ function setText(id, value) {
     if (el) el.textContent = value;
 }
 
+function renderBalance(balance, tasaAhorro) {
+    const el = document.getElementById('balanceMes');
+    if (!el) return;
+
+    const valor = Number(balance || 0);
+    el.textContent = formatMoney(valor);
+    el.className = 'stat-value ' + (valor >= 0 ? 'text-success' : 'text-danger');
+
+    const ahorro = document.getElementById('tasaAhorro');
+    if (ahorro) {
+        ahorro.textContent = tasaAhorro != null
+            ? 'Tasa de ahorro: ' + Number(tasaAhorro).toFixed(1) + ' %'
+            : 'Sin ingresos registrados este mes';
+    }
+}
+
 function renderVariacion(value) {
     const el = document.getElementById('variacion');
     if (!el) return;
@@ -203,21 +221,37 @@ function renderMonthChart(items) {
         type: 'bar',
         data: {
             labels: items.map(i => i.mesLabel),
-            datasets: [{
-                label: 'Gastos',
-                data: items.map(i => Number(i.total)),
-                backgroundColor: '#2563eb',
-                borderRadius: 6
-            }]
+            datasets: [
+                {
+                    type: 'bar',
+                    label: 'Gastos',
+                    data: items.map(i => Number(i.total)),
+                    backgroundColor: '#2563eb',
+                    borderRadius: 6,
+                    order: 2
+                },
+                {
+                    type: 'line',
+                    label: 'Ingresos',
+                    data: items.map(i => Number(i.ingresos || 0)),
+                    borderColor: '#10b981',
+                    backgroundColor: '#10b981',
+                    tension: 0.3,
+                    pointRadius: 3,
+                    borderWidth: 2,
+                    fill: false,
+                    order: 1
+                }
+            ]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                legend: { display: false },
+                legend: { position: 'bottom' },
                 tooltip: {
                     callbacks: {
-                        label: (ctx) => formatMoney(ctx.parsed.y)
+                        label: (ctx) => ctx.dataset.label + ': ' + formatMoney(ctx.parsed.y)
                     }
                 }
             },

@@ -48,9 +48,11 @@ de desarrollo backend con Spring Boot y arquitectura REST.
 |---|---|
 | ![Dashboard](docs/screenshots/dashboard.png) | ![Presupuestos](docs/screenshots/budgets.png) |
 
-| Mapa de gastos | Inicio de sesión |
+| Ingresos | Mapa de gastos |
 |---|---|
-| ![Mapa de gastos](docs/screenshots/map.png) | ![Inicio de sesión](docs/screenshots/login.png) |
+| ![Ingresos](docs/screenshots/incomes.png) | ![Mapa de gastos](docs/screenshots/map.png) |
+
+![Inicio de sesión](docs/screenshots/login.png)
 
 ---
 
@@ -80,6 +82,8 @@ de desarrollo backend con Spring Boot y arquitectura REST.
 - Gráfico de dona: distribución por categoría (mes actual).
 - Gráfico de barras: evolución de los últimos 12 meses (incluye meses sin gastos).
 - Resumen del presupuesto mensual y alertas de categorías cerca del límite o excedidas.
+- Ingresos del mes, balance y tasa de ahorro.
+- Gráfico comparativo de gastos vs. ingresos en los últimos 12 meses.
 - Respeta la zona horaria configurada por el usuario.
 
 ### Presupuestos
@@ -88,6 +92,13 @@ de desarrollo backend con Spring Boot y arquitectura REST.
 - Estados: en orden, cerca del límite (≥ 80 %) y excedido.
 - Página de gestión con selector de mes y edición/eliminación.
 - Alertas visibles en el dashboard.
+
+### Ingresos y balance
+- CRUD de ingresos con monto, fecha, descripción y fuente.
+- Filtros por fecha y búsqueda por descripción/fuente.
+- Balance mensual calculado como ingresos menos gastos.
+- Tasa de ahorro sobre los ingresos del mes.
+- Resumen de ingresos, gastos y balance en su propia página.
 
 ### Mapa de gastos
 - Vista dedicada `/map.html` con MapLibre GL JS.
@@ -429,6 +440,18 @@ los gastos con latitud/longitud para dibujarlos en el mapa (máximo 5000).
 | `GET` | `/api/geocode/search?q=...` | Buscar lugares por nombre |
 | `GET` | `/api/geocode/reverse?lat=...&lon=...` | Obtener dirección desde coordenadas |
 
+### Ingresos
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| `GET` | `/api/incomes` | Listar ingresos paginados y filtrados |
+| `GET` | `/api/incomes/{id}` | Obtener un ingreso |
+| `POST` | `/api/incomes` | Crear un ingreso |
+| `PUT` | `/api/incomes/{id}` | Actualizar un ingreso |
+| `DELETE` | `/api/incomes/{id}` | Eliminar un ingreso |
+
+Acepta `page`, `size`, `sort`, `desde`, `hasta` y `q`.
+
 ### Presupuestos
 
 | Método | Ruta | Descripción |
@@ -441,7 +464,7 @@ los gastos con latitud/longitud para dibujarlos en el mapa (máximo 5000).
 
 | Método | Ruta | Descripción |
 |--------|------|-------------|
-| `GET` | `/api/stats` | Resumen del mes y últimos 12 meses |
+| `GET` | `/api/stats` | Resumen del mes, ingresos, balance y últimos 12 meses |
 
 ---
 
@@ -487,12 +510,13 @@ docker-compose.yml        # PostgreSQL + aplicación
 4. **Consulta, busca y filtra** tus gastos en `/expenses.html` por fecha,
    categoría y descripción.
 5. **Exporta** el listado filtrado a CSV.
-6. **Define presupuestos** en `/budgets.html` y revisa las alertas del dashboard.
-7. **Explora el mapa** en `/map.html`: clusters, colores por categoría y total
+6. **Registra tus ingresos** en `/incomes.html` para calcular balance y tasa de ahorro.
+7. **Define presupuestos** en `/budgets.html` y revisa las alertas del dashboard.
+8. **Explora el mapa** en `/map.html`: clusters, colores por categoría y total
    filtrado.
-8. **Gestiona tus lugares** en `/places.html` y tu cuenta en `/profile.html`.
-9. **Revisa el dashboard** en `/index.html`: total del mes, comparación con el
-   mes anterior, promedio diario, categoría top, presupuesto y evolución de 12 meses.
+9. **Gestiona tus lugares** en `/places.html` y tu cuenta en `/profile.html`.
+10. **Revisa el dashboard** en `/index.html`: total del mes, ingresos, balance,
+    comparación mensual, presupuesto y evolución de 12 meses.
 
 ---
 
@@ -526,7 +550,7 @@ El workflow `.github/workflows/ci.yml` se ejecuta en cada push a `master` o
 1. Configura Java 17.
 2. Ejecuta `./mvnw -B verify` (pruebas + reporte JaCoCo).
 3. Testcontainers levanta PostgreSQL 16 dentro del runner de GitHub Actions.
-4. Publica los reportes de tests y cobertura como artefactos (cobertura actual ~72 %).
+4. Publica los reportes de tests y cobertura como artefactos (cobertura actual ~74 %).
 5. Construye la imagen Docker para validar el empaquetado.
 
 ---
@@ -557,7 +581,7 @@ El workflow `.github/workflows/ci.yml` se ejecuta en cada push a `master` o
 
 - Ampliar la cobertura con pruebas unitarias de servicios y controladores.
 - Notificaciones por email cuando un presupuesto esté por excederse.
-- Gastos recurrentes e ingresos para calcular balance.
+- Gastos recurrentes automáticos.
 - Adjuntar comprobantes (imágenes/PDF).
 - Importación de extractos bancarios y exportación a PDF.
 - Internacionalización completa de textos y formatos.

@@ -3,8 +3,10 @@ package GeoGasto.domain.service;
 import GeoGasto.domain.dto.stats.StatsResponse;
 import GeoGasto.domain.exception.ResourceNotFoundException;
 import GeoGasto.persistence.entity.Expense;
+import GeoGasto.persistence.entity.Income;
 import GeoGasto.persistence.entity.User;
 import GeoGasto.persistence.repository.ExpenseRepository;
+import GeoGasto.persistence.repository.IncomeRepository;
 import GeoGasto.persistence.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -31,7 +33,10 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class StatsService {
 
+    private static final BigDecimal CIEN = BigDecimal.valueOf(100);
+
     private final ExpenseRepository expenseRepository;
+    private final IncomeRepository incomeRepository;
     private final UserRepository userRepository;
 
     @Transactional(readOnly = true)
@@ -44,6 +49,7 @@ public class StatsService {
         LocalDate desde = hasta.minusMonths(11).withDayOfMonth(1);
 
         List<Expense> gastos = expenseRepository.findByUserIdAndFechaBetween(user.getId(), desde, hasta);
+        List<Income> ingresos = incomeRepository.findByUserIdAndFechaBetween(user.getId(), desde, hasta);
 
         YearMonth mesActual = YearMonth.from(hoy);
         YearMonth mesAnterior = mesActual.minusMonths(1);
@@ -51,11 +57,21 @@ public class StatsService {
         List<Expense> gastosMes = gastos.stream()
                 .filter(e -> YearMonth.from(e.getFecha()).equals(mesActual))
                 .toList();
+        List<Income> ingresosMes = ingresos.stream()
+                .filter(i -> YearMonth.from(i.getFecha()).equals(mesActual))
+                .toList();
 
-        BigDecimal totalMes = sumar(gastosMes);
-        BigDecimal totalMesAnterior = sumar(gastos.stream()
+        BigDecimal totalMes = sumarGastos(gastosMes);
+        BigDecimal totalMesAnterior = sumarGastos(gastos.stream()
                 .filter(e -> YearMonth.from(e.getFecha()).equals(mesAnterior))
                 .toList());
+
+        BigDecimal totalIngresosMes = sumarIngresos(ingresosMes);
+        BigDecimal totalIngresosMesAnterior = sumarIngresos(ingresos.stream()
+                .filter(i -> YearMonth.from(i.getFecha()).equals(mesAnterior))
+                .toList());
+        BigDecimal balanceMes = totalIngresosMes.subtract(totalMes);
+        BigDecimal tasaAhorro = calcularTasaAhorro(balanceMes, totalIngresosMes);
 
         BigDecimal variacion = calcularVariacion(totalMes, totalMesAnterior);
         BigDecimal promedioDiario = totalMes.divide(
@@ -83,6 +99,10 @@ public class StatsService {
                 .totalMesAnterior(totalMesAnterior)
                 .variacionPorcentual(variacion)
                 .promedioDiario(promedioDiario)
+                .totalIngresosMes(totalIngresosMes)
+                .totalIngresosMesAnterior(totalIngresosMesAnterior)
+                .balanceMes(balanceMes)
+                .tasaAhorro(tasaAhorro)
                 .categoriaTopNombre(categoriaTop != null ? categoriaTop.getCategoryNombre() : null)
                 .categoriaTopColor(categoriaTop != null ? categoriaTop.getColor() : null)
                 .categoriaTopTotal(categoriaTop != null ? categoriaTop.getTotal() : null)
@@ -90,7 +110,7 @@ public class StatsService {
                 .cantidadCategorias(cantidadCategorias)
                 .cantidadLugares(cantidadLugares)
                 .gastosPorCategoria(porCategoria)
-                .gastosPorMes(calcularPorMes(gastos, YearMonth.from(desde)))
+                .gastosPorMes(calcularPorMes(gastos, ingresos, YearMonth.from(desde)))
                 .build();
     }
 
@@ -102,9 +122,15 @@ public class StatsService {
         }
     }
 
-    private static BigDecimal sumar(List<Expense> gastos) {
+    private static BigDecimal sumarGastos(List<Expense> gastos) {
         return gastos.stream()
                 .map(Expense::getMonto)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    private static BigDecimal sumarIngresos(List<Income> ingresos) {
+        return ingresos.stream()
+                .map(Income::getMonto)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
@@ -113,8 +139,15 @@ public class StatsService {
             return null;
         }
         return actual.subtract(anterior)
-                .multiply(BigDecimal.valueOf(100))
+                .multiply(CIEN)
                 .divide(anterior, 1, RoundingMode.HALF_UP);
+    }
+
+    private static BigDecimal calcularTasaAhorro(BigDecimal balance, BigDecimal ingresos) {
+        if (ingresos.signum() == 0) {
+            return null;
+        }
+        return balance.multiply(CIEN).divide(ingresos, 1, RoundingMode.HALF_UP);
     }
 
     private List<StatsResponse.CategoryStat> calcularPorCategoria(List<Expense> gastos) {
@@ -140,28 +173,38 @@ public class StatsService {
         return new ArrayList<>(map.values());
     }
 
-    private List<StatsResponse.MonthStat> calcularPorMes(List<Expense> gastos, YearMonth inicio) {
+    private List<StatsResponse.MonthStat> calcularPorMes(List<Expense> gastos, List<Income> ingresos,
+                                                         YearMonth inicio) {
         DateTimeFormatter inputFmt = DateTimeFormatter.ofPattern("yyyy-MM");
         DateTimeFormatter labelFmt = DateTimeFormatter.ofPattern("MMM yyyy", new Locale("es", "PE"));
 
-        // Siempre devolvemos los últimos 12 meses, aunque algún mes no tenga gastos.
-        Map<YearMonth, BigDecimal> totales = new TreeMap<>();
+        Map<YearMonth, BigDecimal> gastosPorMes = new TreeMap<>();
+        Map<YearMonth, BigDecimal> ingresosPorMes = new TreeMap<>();
         for (int i = 0; i < 12; i++) {
-            totales.put(inicio.plusMonths(i), BigDecimal.ZERO);
+            YearMonth mes = inicio.plusMonths(i);
+            gastosPorMes.put(mes, BigDecimal.ZERO);
+            ingresosPorMes.put(mes, BigDecimal.ZERO);
         }
 
         for (Expense e : gastos) {
             YearMonth ym = YearMonth.from(e.getFecha());
-            if (totales.containsKey(ym)) {
-                totales.merge(ym, e.getMonto(), BigDecimal::add);
+            if (gastosPorMes.containsKey(ym)) {
+                gastosPorMes.merge(ym, e.getMonto(), BigDecimal::add);
+            }
+        }
+        for (Income i : ingresos) {
+            YearMonth ym = YearMonth.from(i.getFecha());
+            if (ingresosPorMes.containsKey(ym)) {
+                ingresosPorMes.merge(ym, i.getMonto(), BigDecimal::add);
             }
         }
 
-        return totales.entrySet().stream()
+        return gastosPorMes.entrySet().stream()
                 .map(entry -> StatsResponse.MonthStat.builder()
                         .mes(entry.getKey().format(inputFmt))
                         .mesLabel(entry.getKey().format(labelFmt))
                         .total(entry.getValue())
+                        .ingresos(ingresosPorMes.getOrDefault(entry.getKey(), BigDecimal.ZERO))
                         .build())
                 .collect(Collectors.toList());
     }

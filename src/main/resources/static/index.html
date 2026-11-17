@@ -48,7 +48,30 @@
                         <div class="stat-label">Gastado este mes</div>
                         <p class="stat-value" id="totalMes">0.00</p>
                     </div>
-                    <div class="stat-icon"><i class="bi bi-cash-stack"></i></div>
+                    <div class="stat-icon danger"><i class="bi bi-cash-stack"></i></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="card stat-card">
+                <div class="card-body d-flex align-items-center justify-content-between gap-3">
+                    <div>
+                        <div class="stat-label">Ingresos este mes</div>
+                        <p class="stat-value" id="totalIngresos">0.00</p>
+                    </div>
+                    <div class="stat-icon success"><i class="bi bi-cash-coin"></i></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="card stat-card">
+                <div class="card-body d-flex align-items-center justify-content-between gap-3">
+                    <div>
+                        <div class="stat-label">Balance del mes</div>
+                        <p class="stat-value" id="balanceMes">0.00</p>
+                        <div class="small text-muted" id="tasaAhorro"></div>
+                    </div>
+                    <div class="stat-icon purple"><i class="bi bi-wallet2"></i></div>
                 </div>
             </div>
         </div>
@@ -59,29 +82,7 @@
                         <div class="stat-label">N.º de gastos</div>
                         <p class="stat-value" id="cantidadGastos">0</p>
                     </div>
-                    <div class="stat-icon success"><i class="bi bi-receipt"></i></div>
-                </div>
-            </div>
-        </div>
-        <div class="col-sm-6 col-xl-3">
-            <div class="card stat-card">
-                <div class="card-body d-flex align-items-center justify-content-between gap-3">
-                    <div>
-                        <div class="stat-label">Categorías usadas</div>
-                        <p class="stat-value" id="cantidadCategorias">0</p>
-                    </div>
-                    <div class="stat-icon warning"><i class="bi bi-tags"></i></div>
-                </div>
-            </div>
-        </div>
-        <div class="col-sm-6 col-xl-3">
-            <div class="card stat-card">
-                <div class="card-body d-flex align-items-center justify-content-between gap-3">
-                    <div>
-                        <div class="stat-label">Lugares usados</div>
-                        <p class="stat-value" id="cantidadLugares">0</p>
-                    </div>
-                    <div class="stat-icon purple"><i class="bi bi-geo-alt"></i></div>
+                    <div class="stat-icon warning"><i class="bi bi-receipt"></i></div>
                 </div>
             </div>
         </div>
@@ -89,7 +90,7 @@
 
     <!-- Comparativas -->
     <div class="row g-3 mb-4">
-        <div class="col-md-4">
+        <div class="col-sm-6 col-xl-3">
             <div class="card stat-card">
                 <div class="card-body">
                     <div class="stat-label">vs. mes anterior</div>
@@ -98,7 +99,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-sm-6 col-xl-3">
             <div class="card stat-card">
                 <div class="card-body">
                     <div class="stat-label">Promedio diario del mes</div>
@@ -107,12 +108,25 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-sm-6 col-xl-3">
             <div class="card stat-card">
                 <div class="card-body">
                     <div class="stat-label">Categoría con mayor gasto</div>
                     <p class="stat-value mb-1 text-truncate" id="categoriaTop">Sin datos</p>
-                    <div class="small text-muted" id="categoriaTopTotal"></div>
+                    <div class="small text-muted">
+                        <span id="categoriaTopTotal"></span>
+                        <span class="mx-1">·</span>
+                        <span id="cantidadCategorias">0</span> categorías usadas
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="card stat-card">
+                <div class="card-body">
+                    <div class="stat-label">Lugares usados</div>
+                    <p class="stat-value mb-1" id="cantidadLugares">0</p>
+                    <div class="small text-muted">Con ubicación este mes</div>
                 </div>
             </div>
         </div>
@@ -170,7 +184,7 @@
         <div class="col-lg-7">
             <div class="card h-100">
                 <div class="card-body">
-                    <h5 class="card-title mb-3">Evolución mensual</h5>
+                    <h5 class="card-title mb-3">Gastos vs. ingresos</h5>
                     <p class="small text-muted mb-2">Últimos 12 meses</p>
                     <div style="height: 280px;">
                         <canvas id="chartMeses"></canvas>
@@ -190,6 +204,9 @@
                 </a>
                 <a href="/map.html" class="btn btn-outline-primary">
                     <i class="bi bi-geo-alt"></i> Ver mapa de gastos
+                </a>
+                <a href="/incomes.html" class="btn btn-outline-primary">
+                    <i class="bi bi-cash-coin"></i> Ingresos
                 </a>
                 <a href="/budgets.html" class="btn btn-outline-primary">
                     <i class="bi bi-bullseye"></i> Presupuestos
