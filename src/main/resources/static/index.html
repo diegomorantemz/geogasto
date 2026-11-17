@@ -118,6 +118,42 @@
         </div>
     </div>
 
+    <!-- Presupuesto del mes -->
+    <div class="card mb-4 d-none" id="budgetCard">
+        <div class="card-body">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                <div>
+                    <h5 class="card-title mb-1">Presupuesto del mes</h5>
+                    <p class="small text-muted mb-0">Controla tus límites por categoría.</p>
+                </div>
+                <a href="/budgets.html" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-bullseye"></i> Administrar
+                </a>
+            </div>
+
+            <div class="row g-3 mb-2">
+                <div class="col-4">
+                    <div class="stat-label">Presupuesto</div>
+                    <div class="fw-bold" id="budgetTotal">0.00</div>
+                </div>
+                <div class="col-4">
+                    <div class="stat-label">Gastado</div>
+                    <div class="fw-bold" id="budgetSpent">0.00</div>
+                </div>
+                <div class="col-4">
+                    <div class="stat-label">Disponible</div>
+                    <div class="fw-bold" id="budgetAvailable">0.00</div>
+                </div>
+            </div>
+
+            <div class="progress" style="height: 10px;" role="progressbar"
+                 aria-label="Avance del presupuesto" aria-valuemin="0" aria-valuemax="100">
+                <div id="budgetProgressBar" class="progress-bar bg-success" style="width: 0%"></div>
+            </div>
+            <div id="budgetAlerts" class="mt-3"></div>
+        </div>
+    </div>
+
     <!-- Gráficos -->
     <div class="row g-3 mb-4">
         <div class="col-lg-5">
@@ -154,6 +190,9 @@
                 </a>
                 <a href="/map.html" class="btn btn-outline-primary">
                     <i class="bi bi-geo-alt"></i> Ver mapa de gastos
+                </a>
+                <a href="/budgets.html" class="btn btn-outline-primary">
+                    <i class="bi bi-bullseye"></i> Presupuestos
                 </a>
                 <a href="/expenses.html" class="btn btn-outline-secondary">
                     <i class="bi bi-list-ul"></i> Ver todos los gastos

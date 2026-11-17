@@ -3,6 +3,7 @@
 const NAV_ITEMS = [
     { key: 'inicio', href: '/index.html', icon: 'bi-house', label: 'Inicio' },
     { key: 'gastos', href: '/expenses.html', icon: 'bi-list-ul', label: 'Gastos' },
+    { key: 'presupuestos', href: '/budgets.html', icon: 'bi-bullseye', label: 'Presupuestos' },
     { key: 'mapa', href: '/map.html', icon: 'bi-geo-alt', label: 'Mapa' },
     { key: 'categorias', href: '/categories.html', icon: 'bi-tags', label: 'Categorías' },
     { key: 'lugares', href: '/places.html', icon: 'bi-bookmark-star', label: 'Lugares' }

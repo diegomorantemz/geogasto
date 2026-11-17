@@ -44,11 +44,13 @@ de desarrollo backend con Spring Boot y arquitectura REST.
 
 ## Capturas
 
-| Dashboard | Mapa de gastos |
+| Dashboard | Presupuestos |
 |---|---|
-| ![Dashboard](docs/screenshots/dashboard.png) | ![Mapa de gastos](docs/screenshots/map.png) |
+| ![Dashboard](docs/screenshots/dashboard.png) | ![Presupuestos](docs/screenshots/budgets.png) |
 
-![Inicio de sesión](docs/screenshots/login.png)
+| Mapa de gastos | Inicio de sesión |
+|---|---|
+| ![Mapa de gastos](docs/screenshots/map.png) | ![Inicio de sesión](docs/screenshots/login.png) |
 
 ---
 
@@ -77,7 +79,15 @@ de desarrollo backend con Spring Boot y arquitectura REST.
 - Categoría con mayor gasto.
 - Gráfico de dona: distribución por categoría (mes actual).
 - Gráfico de barras: evolución de los últimos 12 meses (incluye meses sin gastos).
+- Resumen del presupuesto mensual y alertas de categorías cerca del límite o excedidas.
 - Respeta la zona horaria configurada por el usuario.
+
+### Presupuestos
+- Presupuesto mensual por categoría.
+- Cálculo automático de gastado, disponible, porcentaje y estado.
+- Estados: en orden, cerca del límite (≥ 80 %) y excedido.
+- Página de gestión con selector de mes y edición/eliminación.
+- Alertas visibles en el dashboard.
 
 ### Mapa de gastos
 - Vista dedicada `/map.html` con MapLibre GL JS.
@@ -419,6 +429,14 @@ los gastos con latitud/longitud para dibujarlos en el mapa (máximo 5000).
 | `GET` | `/api/geocode/search?q=...` | Buscar lugares por nombre |
 | `GET` | `/api/geocode/reverse?lat=...&lon=...` | Obtener dirección desde coordenadas |
 
+### Presupuestos
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| `GET` | `/api/budgets?mes=2026-11` | Resumen de presupuestos y gasto del mes |
+| `POST` | `/api/budgets` | Crear o actualizar un presupuesto por categoría/mes |
+| `DELETE` | `/api/budgets/{id}` | Eliminar un presupuesto |
+
 ### Estadísticas
 
 | Método | Ruta | Descripción |
@@ -469,11 +487,12 @@ docker-compose.yml        # PostgreSQL + aplicación
 4. **Consulta, busca y filtra** tus gastos en `/expenses.html` por fecha,
    categoría y descripción.
 5. **Exporta** el listado filtrado a CSV.
-6. **Explora el mapa** en `/map.html`: clusters, colores por categoría y total
+6. **Define presupuestos** en `/budgets.html` y revisa las alertas del dashboard.
+7. **Explora el mapa** en `/map.html`: clusters, colores por categoría y total
    filtrado.
-7. **Gestiona tus lugares** en `/places.html` y tu cuenta en `/profile.html`.
-8. **Revisa el dashboard** en `/index.html`: total del mes, comparación con el
-   mes anterior, promedio diario, categoría top y evolución de 12 meses.
+8. **Gestiona tus lugares** en `/places.html` y tu cuenta en `/profile.html`.
+9. **Revisa el dashboard** en `/index.html`: total del mes, comparación con el
+   mes anterior, promedio diario, categoría top, presupuesto y evolución de 12 meses.
 
 ---
 
@@ -507,7 +526,7 @@ El workflow `.github/workflows/ci.yml` se ejecuta en cada push a `master` o
 1. Configura Java 17.
 2. Ejecuta `./mvnw -B verify` (pruebas + reporte JaCoCo).
 3. Testcontainers levanta PostgreSQL 16 dentro del runner de GitHub Actions.
-4. Publica los reportes de tests y cobertura como artefactos (cobertura actual ~70 %).
+4. Publica los reportes de tests y cobertura como artefactos (cobertura actual ~72 %).
 5. Construye la imagen Docker para validar el empaquetado.
 
 ---
@@ -537,7 +556,7 @@ El workflow `.github/workflows/ci.yml` se ejecuta en cada push a `master` o
 ### Limitaciones conocidas y siguientes pasos
 
 - Ampliar la cobertura con pruebas unitarias de servicios y controladores.
-- Presupuestos mensuales por categoría y alertas.
+- Notificaciones por email cuando un presupuesto esté por excederse.
 - Gastos recurrentes e ingresos para calcular balance.
 - Adjuntar comprobantes (imágenes/PDF).
 - Importación de extractos bancarios y exportación a PDF.

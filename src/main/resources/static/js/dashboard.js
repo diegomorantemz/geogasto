@@ -1,5 +1,10 @@
 // Dashboard logic
 
+// Respeta la preferencia de movimiento reducido del sistema.
+if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    Chart.defaults.animation = false;
+}
+
 let chartCategorias;
 let chartMeses;
 
@@ -12,6 +17,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     initCurrencySelector();
     await loadStats();
+    await loadBudgetSummary();
 });
 
 function initCurrencySelector() {
@@ -57,6 +63,61 @@ async function loadStats() {
     } catch (err) {
         showStatsError('No se pudieron cargar las estadísticas: ' + err.message);
     }
+}
+
+async function loadBudgetSummary() {
+    const card = document.getElementById('budgetCard');
+    try {
+        const data = await api.get('/budgets');
+        const items = data.presupuestos || [];
+        if (!items.length) {
+            card.classList.add('d-none');
+            return;
+        }
+
+        card.classList.remove('d-none');
+        setText('budgetTotal', formatMoney(data.totalPresupuesto));
+        setText('budgetSpent', formatMoney(data.totalGastado));
+        setText('budgetAvailable', formatMoney(data.totalDisponible));
+
+        const pct = Number(data.porcentaje || 0);
+        const width = Math.min(Math.max(pct, 0), 100);
+        const bar = document.getElementById('budgetProgressBar');
+        bar.style.width = width + '%';
+        bar.className = 'progress-bar ' + (pct >= 100 ? 'bg-danger' : pct >= 80 ? 'bg-warning' : 'bg-success');
+        bar.parentElement.setAttribute('aria-valuenow', String(width));
+
+        const alerts = items.filter(i => i.estado !== 'OK');
+        const box = document.getElementById('budgetAlerts');
+        if (!alerts.length) {
+            box.innerHTML = '<div class="small text-success"><i class="bi bi-check-circle"></i> Todo bajo control.</div>';
+            return;
+        }
+
+        box.innerHTML = alerts.map(a => `
+            <div class="d-flex justify-content-between align-items-center border-top py-2">
+                <span class="small">
+                    <i class="bi bi-exclamation-triangle ${a.estado === 'EXCEDIDO' ? 'text-danger' : 'text-warning'}"></i>
+                    ${escapeHtml(a.categoryNombre)}
+                </span>
+                <span class="badge ${a.estado === 'EXCEDIDO' ? 'bg-danger-subtle text-danger-emphasis' : 'bg-warning-subtle text-warning-emphasis'}">
+                    ${Number(a.porcentaje).toFixed(1)} %
+                </span>
+            </div>
+        `).join('');
+    } catch (err) {
+        card.classList.add('d-none');
+    }
+}
+
+function escapeHtml(str) {
+    if (str == null) return '';
+    return String(str)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
 }
 
 function showStatsError(message) {
