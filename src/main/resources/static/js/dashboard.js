@@ -18,6 +18,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initCurrencySelector();
     await loadStats();
     await loadBudgetSummary();
+    await loadRecurringSummary();
 });
 
 function initCurrencySelector() {
@@ -110,6 +111,46 @@ async function loadBudgetSummary() {
     } catch (err) {
         card.classList.add('d-none');
     }
+}
+
+async function loadRecurringSummary() {
+    const card = document.getElementById('recurringCard');
+    try {
+        const items = (await api.get('/recurring-expenses'))
+            .filter(r => r.activo)
+            .sort((a, b) => String(a.proximaFecha).localeCompare(String(b.proximaFecha)));
+
+        if (!items.length) {
+            card.classList.add('d-none');
+            return;
+        }
+
+        card.classList.remove('d-none');
+        const labels = { DAILY: 'Diario', WEEKLY: 'Semanal', MONTHLY: 'Mensual', YEARLY: 'Anual' };
+        document.getElementById('recurringUpcoming').innerHTML = items.slice(0, 4).map(r => `
+            <div class="d-flex justify-content-between align-items-center border-top py-2 gap-3">
+                <div>
+                    <div class="fw-semibold">${escapeHtml(r.descripcion || 'Sin descripción')}</div>
+                    <div class="small text-muted">
+                        ${labels[r.frecuencia] || r.frecuencia}
+                        ${r.categoryNombre ? ' · ' + escapeHtml(r.categoryNombre) : ''}
+                    </div>
+                </div>
+                <div class="text-end text-nowrap">
+                    <div class="fw-semibold">${formatMoney(r.monto)}</div>
+                    <div class="small text-muted">${formatDate(r.proximaFecha)}</div>
+                </div>
+            </div>
+        `).join('');
+    } catch (err) {
+        card.classList.add('d-none');
+    }
+}
+
+function formatDate(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso + 'T00:00:00');
+    return d.toLocaleDateString('es-PE', { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
 function escapeHtml(str) {

@@ -8,6 +8,7 @@ import GeoGasto.persistence.entity.SavedPlace;
 import GeoGasto.persistence.entity.User;
 import GeoGasto.persistence.repository.ExpenseRepository;
 import GeoGasto.persistence.repository.LocationRepository;
+import GeoGasto.persistence.repository.RecurringExpenseRepository;
 import GeoGasto.persistence.repository.SavedPlaceRepository;
 import GeoGasto.persistence.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +25,7 @@ public class SavedPlaceService {
     private final UserRepository userRepository;
     private final LocationRepository locationRepository;
     private final ExpenseRepository expenseRepository;
+    private final RecurringExpenseRepository recurringExpenseRepository;
 
     @Transactional(readOnly = true)
     public List<SavedPlaceResponse> listar(String email) {
@@ -104,7 +106,8 @@ public class SavedPlaceService {
 
         boolean usadaPorGasto = expenseRepository.existsByLocationId(location.getId());
         boolean usadaPorLugar = savedPlaceRepository.existsByLocationId(location.getId());
-        if (!usadaPorGasto && !usadaPorLugar) {
+        boolean usadaPorRecurrente = recurringExpenseRepository.existsByLocationId(location.getId());
+        if (!usadaPorGasto && !usadaPorLugar && !usadaPorRecurrente) {
             locationRepository.delete(location);
         }
     }

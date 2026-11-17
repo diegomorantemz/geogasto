@@ -48,11 +48,13 @@ de desarrollo backend con Spring Boot y arquitectura REST.
 |---|---|
 | ![Dashboard](docs/screenshots/dashboard.png) | ![Presupuestos](docs/screenshots/budgets.png) |
 
-| Ingresos | Mapa de gastos |
+| Ingresos | Recurrentes |
 |---|---|
-| ![Ingresos](docs/screenshots/incomes.png) | ![Mapa de gastos](docs/screenshots/map.png) |
+| ![Ingresos](docs/screenshots/incomes.png) | ![Recurrentes](docs/screenshots/recurring.png) |
 
-![Inicio de sesión](docs/screenshots/login.png)
+| Mapa de gastos | Inicio de sesión |
+|---|---|
+| ![Mapa de gastos](docs/screenshots/map.png) | ![Inicio de sesión](docs/screenshots/login.png) |
 
 ---
 
@@ -84,6 +86,7 @@ de desarrollo backend con Spring Boot y arquitectura REST.
 - Resumen del presupuesto mensual y alertas de categorías cerca del límite o excedidas.
 - Ingresos del mes, balance y tasa de ahorro.
 - Gráfico comparativo de gastos vs. ingresos en los últimos 12 meses.
+- Próximos gastos recurrentes.
 - Respeta la zona horaria configurada por el usuario.
 
 ### Presupuestos
@@ -99,6 +102,15 @@ de desarrollo backend con Spring Boot y arquitectura REST.
 - Balance mensual calculado como ingresos menos gastos.
 - Tasa de ahorro sobre los ingresos del mes.
 - Resumen de ingresos, gastos y balance en su propia página.
+
+### Gastos recurrentes
+- Plantillas de gasto con frecuencia diaria, semanal, mensual o anual.
+- Fecha de inicio, fecha de fin opcional, categoría y lugar guardado.
+- Generación automática diaria de los gastos vencidos.
+- Botón para generar pendientes manualmente.
+- Pausar, editar y eliminar recurrencias sin borrar los gastos ya generados.
+- Próximos vencimientos visibles en el dashboard.
+- Monto mensual estimado de las recurrencias activas.
 
 ### Mapa de gastos
 - Vista dedicada `/map.html` con MapLibre GL JS.
@@ -341,6 +353,8 @@ docker compose down -v
 | `nominatim.min-interval-ms` | Separación mínima entre llamadas a Nominatim | `1000` |
 | `nominatim.cache-hours` | Horas de caché de geocodificación | `24` |
 | `app.seed-default-categories` | Crear categorías iniciales al registrarse | `true` |
+| `app.recurring.cron` | Cron diario de generación de recurrentes | `0 10 3 * * *` |
+| `app.recurring.max-per-run` | Máximo de gastos generados por recurrencia y ejecución | `120` |
 | `rate-limit.max-requests` | Intentos permitidos en login/registro por ventana | `20` |
 | `rate-limit.window-seconds` | Ventana del límite de intentos | `60` |
 | `server.port` | Puerto HTTP | `8080` |
@@ -452,6 +466,20 @@ los gastos con latitud/longitud para dibujarlos en el mapa (máximo 5000).
 
 Acepta `page`, `size`, `sort`, `desde`, `hasta` y `q`.
 
+### Gastos recurrentes
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| `GET` | `/api/recurring-expenses` | Listar recurrencias del usuario |
+| `POST` | `/api/recurring-expenses` | Crear una recurrencia |
+| `PUT` | `/api/recurring-expenses/{id}` | Actualizar monto, categoría, lugar, fin o estado |
+| `DELETE` | `/api/recurring-expenses/{id}` | Eliminar una recurrencia |
+| `POST` | `/api/recurring-expenses/generate` | Generar manualmente los gastos vencidos |
+
+La fecha de inicio y la frecuencia son inmutables después de crear la recurrencia.
+El scheduler diario (`app.recurring.cron`) genera automáticamente los gastos vencidos
+respetando la zona horaria de cada usuario.
+
 ### Presupuestos
 
 | Método | Ruta | Descripción |
@@ -512,11 +540,13 @@ docker-compose.yml        # PostgreSQL + aplicación
 5. **Exporta** el listado filtrado a CSV.
 6. **Registra tus ingresos** en `/incomes.html` para calcular balance y tasa de ahorro.
 7. **Define presupuestos** en `/budgets.html` y revisa las alertas del dashboard.
-8. **Explora el mapa** en `/map.html`: clusters, colores por categoría y total
+8. **Configura gastos recurrentes** en `/recurring.html`; los vencidos se generan
+   automáticamente y también puedes generarlos manualmente.
+9. **Explora el mapa** en `/map.html`: clusters, colores por categoría y total
    filtrado.
-9. **Gestiona tus lugares** en `/places.html` y tu cuenta en `/profile.html`.
-10. **Revisa el dashboard** en `/index.html`: total del mes, ingresos, balance,
-    comparación mensual, presupuesto y evolución de 12 meses.
+10. **Gestiona tus lugares** en `/places.html` y tu cuenta en `/profile.html`.
+11. **Revisa el dashboard** en `/index.html`: total del mes, ingresos, balance,
+    comparación mensual, presupuesto, próximos recurrentes y evolución de 12 meses.
 
 ---
 
@@ -550,7 +580,7 @@ El workflow `.github/workflows/ci.yml` se ejecuta en cada push a `master` o
 1. Configura Java 17.
 2. Ejecuta `./mvnw -B verify` (pruebas + reporte JaCoCo).
 3. Testcontainers levanta PostgreSQL 16 dentro del runner de GitHub Actions.
-4. Publica los reportes de tests y cobertura como artefactos (cobertura actual ~74 %).
+4. Publica los reportes de tests y cobertura como artefactos (cobertura actual ~75 %).
 5. Construye la imagen Docker para validar el empaquetado.
 
 ---
@@ -581,7 +611,6 @@ El workflow `.github/workflows/ci.yml` se ejecuta en cada push a `master` o
 
 - Ampliar la cobertura con pruebas unitarias de servicios y controladores.
 - Notificaciones por email cuando un presupuesto esté por excederse.
-- Gastos recurrentes automáticos.
 - Adjuntar comprobantes (imágenes/PDF).
 - Importación de extractos bancarios y exportación a PDF.
 - Internacionalización completa de textos y formatos.

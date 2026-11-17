@@ -12,6 +12,7 @@ import GeoGasto.persistence.entity.User;
 import GeoGasto.persistence.repository.CategoryRepository;
 import GeoGasto.persistence.repository.ExpenseRepository;
 import GeoGasto.persistence.repository.LocationRepository;
+import GeoGasto.persistence.repository.RecurringExpenseRepository;
 import GeoGasto.persistence.repository.SavedPlaceRepository;
 import GeoGasto.persistence.repository.UserRepository;
 import jakarta.persistence.criteria.Predicate;
@@ -41,6 +42,7 @@ public class ExpenseService {
     private final CategoryRepository categoryRepository;
     private final LocationRepository locationRepository;
     private final SavedPlaceRepository savedPlaceRepository;
+    private final RecurringExpenseRepository recurringExpenseRepository;
 
     @Transactional(readOnly = true)
     public Page<ExpenseResponse> listar(String email, Pageable pageable) {
@@ -195,7 +197,8 @@ public class ExpenseService {
 
         boolean usadaPorGasto = expenseRepository.existsByLocationId(location.getId());
         boolean usadaPorLugar = savedPlaceRepository.existsByLocationId(location.getId());
-        if (!usadaPorGasto && !usadaPorLugar) {
+        boolean usadaPorRecurrente = recurringExpenseRepository.existsByLocationId(location.getId());
+        if (!usadaPorGasto && !usadaPorLugar && !usadaPorRecurrente) {
             locationRepository.delete(location);
         }
     }

@@ -5,6 +5,7 @@ const NAV_ITEMS = [
     { key: 'gastos', href: '/expenses.html', icon: 'bi-list-ul', label: 'Gastos' },
     { key: 'ingresos', href: '/incomes.html', icon: 'bi-cash-coin', label: 'Ingresos' },
     { key: 'presupuestos', href: '/budgets.html', icon: 'bi-bullseye', label: 'Presupuestos' },
+    { key: 'recurrentes', href: '/recurring.html', icon: 'bi-arrow-repeat', label: 'Recurrentes' },
     { key: 'mapa', href: '/map.html', icon: 'bi-geo-alt', label: 'Mapa' },
     { key: 'categorias', href: '/categories.html', icon: 'bi-tags', label: 'Categorías' },
     { key: 'lugares', href: '/places.html', icon: 'bi-bookmark-star', label: 'Lugares' }
@@ -20,7 +21,7 @@ function renderAppNav() {
         || 'Mi cuenta';
 
     host.innerHTML = `
-        <nav class="navbar navbar-expand-xl navbar-dark bg-primary sticky-top">
+        <nav class="navbar navbar-expand-xxl navbar-dark bg-primary sticky-top">
             <div class="container">
                 <a class="navbar-brand" href="/index.html">
                     <i class="bi bi-wallet2"></i> GeoGasto
