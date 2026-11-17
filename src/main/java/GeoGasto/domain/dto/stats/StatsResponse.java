@@ -14,8 +14,15 @@ import java.util.List;
 @AllArgsConstructor
 public class StatsResponse {
     private BigDecimal totalMes;
+    private BigDecimal totalMesAnterior;
+    private BigDecimal variacionPorcentual;
+    private BigDecimal promedioDiario;
+    private String categoriaTopNombre;
+    private String categoriaTopColor;
+    private BigDecimal categoriaTopTotal;
     private Long cantidadGastos;
     private Long cantidadCategorias;
+    private Long cantidadLugares;
     private List<CategoryStat> gastosPorCategoria;
     private List<MonthStat> gastosPorMes;
 

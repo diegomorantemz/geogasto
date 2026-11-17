@@ -32,5 +32,6 @@ public abstract class AbstractIntegrationTest {
         registry.add("spring.datasource.driver-class-name", () -> "org.postgresql.Driver");
         registry.add("jwt.secret",
                 () -> "test-secret-key-with-at-least-256-bits-for-jwt-signing-1234567890");
+        registry.add("rate-limit.enabled", () -> "false");
     }
 }

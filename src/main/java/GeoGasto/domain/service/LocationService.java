@@ -30,6 +30,15 @@ public class LocationService {
     public LocationResponse crear(String email, LocationRequest request) {
         User user = obtenerUsuario(email);
 
+        // Si el placeId ya existe para este usuario, reutilizamos la ubicación.
+        if (request.getPlaceId() != null && !request.getPlaceId().isBlank()) {
+            var existente = locationRepository
+                    .findFirstByUserIdAndPlaceIdOrderByIdAsc(user.getId(), request.getPlaceId());
+            if (existente.isPresent()) {
+                return toResponse(existente.get());
+            }
+        }
+
         Location location = Location.builder()
                 .direccion(request.getDireccion())
                 .latitud(request.getLatitud())
@@ -59,7 +68,7 @@ public class LocationService {
     }
 
     private User obtenerUsuario(String email) {
-        return userRepository.findByEmail(email)
+        return userRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
     }
 

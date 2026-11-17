@@ -8,15 +8,18 @@ let map;
 let marker;
 let selectedLocation = null;
 let searchTimeout;
+let searchResultsCache = [];
+let savedPlaces = [];
+let submitting = false;
 
 document.addEventListener('DOMContentLoaded', async () => {
     if (!requireLogin()) return;
 
-    const email = getEmail();
-    if (email) document.getElementById('userEmail').textContent = email;
+    await ensureProfile();
 
-    // Default date = today
-    document.getElementById('fecha').value = todayLocalISO();
+    const hoy = todayLocalISO();
+    document.getElementById('fecha').value = hoy;
+    document.getElementById('fecha').max = hoy;
 
     await loadCategories();
     await loadSavedPlaces();
@@ -32,7 +35,7 @@ async function loadCategories() {
         select.innerHTML = '<option value="">Sin categoría</option>' +
             categories.map(c => `<option value="${c.id}">${escapeHtml(c.nombre)}</option>`).join('');
     } catch (err) {
-        showError('Error al cargar categorías');
+        showError('No se pudieron cargar las categorías: ' + err.message);
     }
 }
 
@@ -40,22 +43,17 @@ async function loadCategories() {
 async function loadSavedPlaces() {
     const container = document.getElementById('savedPlacesChips');
     try {
-        const places = await api.get('/saved-places');
+        savedPlaces = await api.get('/saved-places');
 
-        if (!places || places.length === 0) {
+        if (!savedPlaces || savedPlaces.length === 0) {
             container.innerHTML = '<span class="text-muted small">No tienes lugares guardados aún.</span>';
             return;
         }
 
-        container.innerHTML = places.map(p => `
+        container.innerHTML = savedPlaces.map(p => `
             <button type="button" class="btn btn-sm btn-outline-primary"
                     onclick="useSavedPlace(${p.id})"
-                    data-lat="${p.latitud}"
-                    data-lon="${p.longitud}"
-                    data-dir="${escapeHtml(p.direccion || '')}"
-                    data-ciudad="${escapeHtml(p.ciudad || '')}"
-                    data-pais="${escapeHtml(p.pais || '')}"
-                    data-placeid="${escapeHtml(p.placeId || '')}">
+                    title="${escapeHtml(p.direccion || p.alias)}">
                 <i class="bi bi-bookmark-star"></i> ${escapeHtml(p.alias)}
             </button>
         `).join('');
@@ -66,19 +64,20 @@ async function loadSavedPlaces() {
 }
 
 async function useSavedPlace(id) {
-    const btn = document.querySelector(`button[onclick="useSavedPlace(${id})"]`);
-    if (!btn) return;
+    const place = savedPlaces.find(p => p.id === id);
+    if (!place) return;
 
     selectedLocation = {
-        direccion: btn.dataset.dir,
-        latitud: parseFloat(btn.dataset.lat),
-        longitud: parseFloat(btn.dataset.lon),
-        ciudad: btn.dataset.ciudad,
-        pais: btn.dataset.pais,
-        placeId: btn.dataset.placeid
+        locationId: place.locationId,
+        direccion: place.direccion,
+        latitud: place.latitud,
+        longitud: place.longitud,
+        ciudad: place.ciudad,
+        pais: place.pais,
+        placeId: place.placeId
     };
 
-    setMarker(selectedLocation.latitud, selectedLocation.longitud);
+    setMarker(place.latitud, place.longitud);
     updateLocationDisplay();
 
     // Registrar uso (silencioso si falla)
@@ -96,20 +95,24 @@ async function saveAsFavorite() {
     if (!alias || !alias.trim()) return;
 
     try {
-        // 1. Crear la location
-        const loc = await api.post('/locations', {
-            direccion: selectedLocation.direccion,
-            latitud: selectedLocation.latitud,
-            longitud: selectedLocation.longitud,
-            ciudad: selectedLocation.ciudad,
-            pais: selectedLocation.pais,
-            placeId: selectedLocation.placeId
-        });
+        let locationId = selectedLocation.locationId;
 
-        // 2. Crear el saved place
+        if (!locationId) {
+            const loc = await api.post('/locations', {
+                direccion: selectedLocation.direccion,
+                latitud: selectedLocation.latitud,
+                longitud: selectedLocation.longitud,
+                ciudad: selectedLocation.ciudad,
+                pais: selectedLocation.pais,
+                placeId: selectedLocation.placeId
+            });
+            locationId = loc.id;
+            selectedLocation.locationId = loc.id;
+        }
+
         await api.post('/saved-places', {
             alias: alias.trim(),
-            locationId: loc.id
+            locationId
         });
 
         showSuccess('Lugar guardado como "' + alias.trim() + '"');
@@ -180,6 +183,7 @@ async function reverseGeocode(lat, lon) {
     try {
         const result = await api.get(`/geocode/reverse?lat=${lat}&lon=${lon}`);
         selectedLocation = {
+            locationId: null,
             direccion: result.displayName,
             latitud: result.latitud,
             longitud: result.longitud,
@@ -190,7 +194,7 @@ async function reverseGeocode(lat, lon) {
         setMarker(result.latitud, result.longitud);
         updateLocationDisplay();
     } catch (err) {
-        showError('Error al obtener la dirección');
+        showError('No se pudo obtener la dirección. Puedes guardar el gasto sin ubicación.');
     }
 }
 
@@ -223,14 +227,16 @@ async function doSearch(q) {
 
     try {
         const items = await api.get('/geocode/search?q=' + encodeURIComponent(q));
-        if (!items || items.length === 0) {
+        searchResultsCache = items || [];
+
+        if (searchResultsCache.length === 0) {
             results.innerHTML = '<div class="list-group-item text-muted small">Sin resultados</div>';
             return;
         }
 
-        results.innerHTML = items.map((r, i) => `
+        results.innerHTML = searchResultsCache.map((r, i) => `
             <button type="button" class="list-group-item list-group-item-action"
-                    onclick='selectSearchResult(${JSON.stringify(r).replace(/'/g, "&apos;")})'>
+                    onclick="selectSearchResult(${i})">
                 <div class="small fw-semibold">${escapeHtml(r.displayName)}</div>
                 <div class="text-muted" style="font-size: 0.75rem;">
                     ${escapeHtml(r.ciudad || '')} ${r.pais ? '- ' + escapeHtml(r.pais) : ''}
@@ -238,12 +244,16 @@ async function doSearch(q) {
             </button>
         `).join('');
     } catch (err) {
-        results.innerHTML = '<div class="list-group-item text-danger small">Error al buscar</div>';
+        results.innerHTML = `<div class="list-group-item text-danger small">${escapeHtml(err.message)}</div>`;
     }
 }
 
-function selectSearchResult(result) {
+function selectSearchResult(index) {
+    const result = searchResultsCache[index];
+    if (!result) return;
+
     selectedLocation = {
+        locationId: null,
         direccion: result.displayName,
         latitud: result.latitud,
         longitud: result.longitud,
@@ -282,40 +292,55 @@ function clearLocation() {
 // ===== Submit =====
 async function handleSubmit(event) {
     event.preventDefault();
+    if (submitting) return;
 
     const categoryId = document.getElementById('categoryId').value;
+    const monto = parseFloat(document.getElementById('monto').value);
+
+    if (!Number.isFinite(monto) || monto <= 0) {
+        showError('El monto debe ser mayor a 0');
+        return;
+    }
 
     const body = {
-        monto: parseFloat(document.getElementById('monto').value),
+        monto,
         fecha: document.getElementById('fecha').value,
         descripcion: document.getElementById('descripcion').value.trim() || null,
         categoryId: categoryId ? parseInt(categoryId) : null
     };
 
-    if (selectedLocation) {
+    if (selectedLocation && selectedLocation.locationId) {
+        body.locationId = selectedLocation.locationId;
+    } else if (selectedLocation) {
         body.locationDireccion = selectedLocation.direccion;
         body.locationLatitud = selectedLocation.latitud;
         body.locationLongitud = selectedLocation.longitud;
         body.locationCiudad = selectedLocation.ciudad;
         body.locationPais = selectedLocation.pais;
         body.locationPlaceId = selectedLocation.placeId;
-
-        try {
-            await api.post('/expenses/with-location', body);
-            showSuccess('Gasto registrado con ubicación');
-            setTimeout(() => window.location.href = '/expenses.html', 800);
-        } catch (err) {
-            showError(err.message);
-        }
     } else {
         body.locationId = null;
-        try {
+    }
+
+    const btn = document.getElementById('saveExpenseBtn');
+    const original = btn.innerHTML;
+    submitting = true;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Guardando...';
+
+    try {
+        if (selectedLocation && !selectedLocation.locationId) {
+            await api.post('/expenses/with-location', body);
+        } else {
             await api.post('/expenses', body);
-            showSuccess('Gasto registrado');
-            setTimeout(() => window.location.href = '/expenses.html', 800);
-        } catch (err) {
-            showError(err.message);
         }
+        showSuccess('Gasto registrado');
+        setTimeout(() => window.location.href = '/expenses.html', 800);
+    } catch (err) {
+        showError(err.message);
+        submitting = false;
+        btn.disabled = false;
+        btn.innerHTML = original;
     }
 }
 

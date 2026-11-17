@@ -10,6 +10,7 @@ obtenida por GPS, búsqueda por nombre o selección manual en un mapa interactiv
 ## Tabla de contenidos
 
 - [Descripción](#descripción)
+- [Capturas](#capturas)
 - [Características principales](#características-principales)
 - [Arquitectura](#arquitectura)
 - [Stack tecnológico](#stack-tecnológico)
@@ -41,12 +42,23 @@ de desarrollo backend con Spring Boot y arquitectura REST.
 
 ---
 
+## Capturas
+
+| Dashboard | Mapa de gastos |
+|---|---|
+| ![Dashboard](docs/screenshots/dashboard.png) | ![Mapa de gastos](docs/screenshots/map.png) |
+
+![Inicio de sesión](docs/screenshots/login.png)
+
+---
+
 ## Características principales
 
 ### Gestión de gastos
 - CRUD completo de gastos con monto, fecha, descripción y categoría.
-- Filtros por rango de fechas y categoría.
+- Filtros por rango de fechas, categoría y búsqueda por descripción.
 - Paginación de resultados.
+- Edición conservando o quitando la ubicación del gasto.
 
 ### Gestión de categorías
 - CRUD completo con nombre, color e icono personalizables.
@@ -60,18 +72,39 @@ de desarrollo backend con Spring Boot y arquitectura REST.
 
 ### Dashboard
 - Total gastado en el mes actual.
-- Cantidad de gastos y categorías usadas en el mes actual.
+- Comparación con el mes anterior y promedio diario.
+- Cantidad de gastos, categorías y lugares usados en el mes actual.
+- Categoría con mayor gasto.
 - Gráfico de dona: distribución por categoría (mes actual).
 - Gráfico de barras: evolución de los últimos 12 meses (incluye meses sin gastos).
+- Respeta la zona horaria configurada por el usuario.
+
+### Mapa de gastos
+- Vista dedicada `/map.html` con MapLibre GL JS.
+- Agrupación de marcadores (clusters) y popups con el detalle de cada gasto.
+- Filtros por fecha, categoría y descripción.
+- Total y cantidad de gastos filtrados.
+- Color y tamaño de cada punto según categoría y monto.
+
+### Perfil y lugares guardados
+- Pantalla de perfil para editar nombre, moneda y zona horaria.
+- Cambio de contraseña con verificación de la contraseña actual.
+- Gestión de lugares guardados: listar, renombrar y eliminar.
+- Categorías por defecto al registrarse para empezar sin fricción.
 
 ### Seguridad
 - Autenticación con JWT (JSON Web Tokens).
 - Contraseñas hasheadas con BCrypt.
 - Aislamiento de datos por usuario: cada quien ve solo sus gastos.
+- Límite de intentos en login y registro.
+- Validación de DTOs y coordenadas.
+- Protección contra CSV injection en las exportaciones.
 
 ### Extras
-- Exportación de gastos a CSV.
-- Documentación interactiva con Swagger UI.
+- Exportación de gastos a CSV (con coordenadas).
+- Documentación interactiva con Swagger UI y autenticación Bearer.
+- Healthchecks con Spring Boot Actuator.
+- Caché y límite de peticiones para Nominatim.
 
 ---
 
@@ -122,7 +155,9 @@ Servicios externos:
 | Flyway | 12.x | Migraciones de base de datos |
 | Lombok | 1.18.x | Reducción de boilerplate |
 | PostgreSQL Driver | 42.7.x | Conexión a PostgreSQL |
-| SpringDoc OpenAPI | 2.6.0 | Documentación de API |
+| SpringDoc OpenAPI | 3.2.0 | Documentación de API (compatible con Spring Boot 4) |
+| Caffeine | 3.x | Caché en memoria para geocodificación |
+| Spring Boot Actuator | 4.x | Healthchecks y métricas operativas |
 | Testcontainers | 2.x | Pruebas de integración con PostgreSQL |
 | Docker / Compose | 24+ | Contenedores y entorno reproducible |
 
@@ -197,6 +232,13 @@ cp .env.example .env
 DB_URL=jdbc:postgresql://localhost:5432/GeoGasto
 DB_USER=postgres
 DB_PASSWORD=tu_password
+JWT_SECRET=una_clave_aleatoria_de_al_menos_256_bits
+```
+
+Genera el secreto con:
+
+```bash
+openssl rand -base64 48
 ```
 
 > `.env` está en `.gitignore`: nunca subas credenciales reales al repositorio.
@@ -275,7 +317,18 @@ docker compose down -v
 | `JWT_SECRET` | Clave para firmar los JWT (mínimo 256 bits) | — |
 | `jwt.expiration` | Vigencia del token en ms | `86400000` (24 h) |
 | `nominatim.base-url` | URL de Nominatim | `https://nominatim.openstreetmap.org` |
+| `nominatim.min-interval-ms` | Separación mínima entre llamadas a Nominatim | `1000` |
+| `nominatim.cache-hours` | Horas de caché de geocodificación | `24` |
+| `app.seed-default-categories` | Crear categorías iniciales al registrarse | `true` |
+| `rate-limit.max-requests` | Intentos permitidos en login/registro por ventana | `20` |
+| `rate-limit.window-seconds` | Ventana del límite de intentos | `60` |
 | `server.port` | Puerto HTTP | `8080` |
+
+### Perfiles
+
+- **dev**: activa logs SQL (`SPRING_PROFILES_ACTIVE=dev`).
+- **prod**: desactiva logs SQL y Swagger UI (`SPRING_PROFILES_ACTIVE=prod`).
+- Sin perfil: configuración base segura para ejecutar en local.
 
 > Genera `JWT_SECRET` con una clave aleatoria de al menos 256 bits, por ejemplo:
 > `openssl rand -base64 48`. No reutilices la clave de ejemplo en producción.
@@ -298,6 +351,7 @@ Authorization: Bearer <token>
 | `POST` | `/api/auth/login` | Iniciar sesión y obtener token |
 | `GET` | `/api/auth/me` | Obtener perfil del usuario autenticado |
 | `PUT` | `/api/auth/me` | Actualizar nombre, moneda o zona horaria |
+| `PUT` | `/api/auth/me/password` | Cambiar contraseña verificando la actual |
 
 ### Categorías
 
@@ -320,6 +374,7 @@ Authorization: Bearer <token>
 | `PUT` | `/api/expenses/{id}` | Actualizar gasto |
 | `DELETE` | `/api/expenses/{id}` | Eliminar gasto |
 | `GET` | `/api/expenses/export` | Exportar gastos a CSV |
+| `GET` | `/api/expenses/map` | Gastos con ubicación para el mapa |
 
 Parámetros de `GET /api/expenses`:
 
@@ -331,9 +386,13 @@ Parámetros de `GET /api/expenses`:
 | `desde` | `2026-01-01` | Fecha mínima (inclusive) |
 | `hasta` | `2026-12-31` | Fecha máxima (inclusive) |
 | `categoryId` | `3` | Filtrar por categoría |
+| `q` | `almuerzo` | Buscar en la descripción |
 
-`GET /api/expenses/export` acepta los mismos filtros `desde`, `hasta` y
-`categoryId`, y devuelve un archivo `gastos.csv` en UTF-8.
+`GET /api/expenses/export` acepta los mismos filtros y devuelve un archivo
+`gastos.csv` en UTF-8, incluyendo coordenadas.
+
+`GET /api/expenses/map` acepta `desde`, `hasta`, `categoryId` y `q`, y devuelve
+los gastos con latitud/longitud para dibujarlos en el mapa (máximo 5000).
 
 ### Ubicaciones
 
@@ -349,6 +408,7 @@ Parámetros de `GET /api/expenses`:
 |--------|------|-------------|
 | `GET` | `/api/saved-places` | Listar lugares guardados |
 | `POST` | `/api/saved-places` | Guardar un lugar (`alias`, `locationId`) |
+| `PUT` | `/api/saved-places/{id}` | Renombrar un lugar guardado |
 | `POST` | `/api/saved-places/{id}/use` | Incrementar contador de uso |
 | `DELETE` | `/api/saved-places/{id}` | Eliminar lugar guardado |
 
@@ -397,17 +457,23 @@ docker-compose.yml        # PostgreSQL + aplicación
 
 ## Uso de la aplicación
 
-1. **Regístrate** en `/register.html` e inicia sesión en `/login.html`.
-2. **Crea categorías** en `/categories.html` (nombre, color e icono).
+1. **Regístrate** en `/register.html` (incluye moneda y zona horaria) y entra
+   directamente al dashboard.
+2. **Revisa tus categorías** en `/categories.html`: al registrarte se crean
+   categorías iniciales (Comida, Transporte, Hogar, Ocio, Salud, Educación, Otros).
 3. **Registra un gasto** en `/new-expense.html`:
    - Usa tu ubicación GPS actual.
    - Busca un lugar por nombre.
    - Haz clic o arrastra el marcador en el mapa.
-   - O guarda el lugar como favorito ("Casa", "Trabajo", etc.).
-4. **Consulta y filtra** tus gastos en `/expenses.html` por fecha y categoría.
+   - O usa un lugar guardado ("Casa", "Trabajo", etc.).
+4. **Consulta, busca y filtra** tus gastos en `/expenses.html` por fecha,
+   categoría y descripción.
 5. **Exporta** el listado filtrado a CSV.
-6. **Revisa el dashboard** en `/index.html`: total del mes, distribución por
-   categoría y evolución de los últimos 12 meses.
+6. **Explora el mapa** en `/map.html`: clusters, colores por categoría y total
+   filtrado.
+7. **Gestiona tus lugares** en `/places.html` y tu cuenta en `/profile.html`.
+8. **Revisa el dashboard** en `/index.html`: total del mes, comparación con el
+   mes anterior, promedio diario, categoría top y evolución de 12 meses.
 
 ---
 
@@ -417,7 +483,10 @@ El proyecto incluye:
 
 - `Dockerfile` multi-etapa (Maven para compilar, JRE 17 para ejecutar).
 - `docker-compose.yml` con PostgreSQL 16 y la aplicación.
-- Healthcheck de PostgreSQL y espera a que esté listo antes de arrancar la app.
+- Healthchecks de PostgreSQL y de la aplicación (`/actuator/health`).
+- La aplicación espera a que PostgreSQL esté listo antes de arrancar.
+- `DB_PASSWORD` y `JWT_SECRET` son obligatorios: el compose falla con un mensaje
+  claro si faltan en `.env`.
 
 Comandos útiles:
 
@@ -433,11 +502,13 @@ docker compose down -v         # detener y borrar el volumen de datos
 ## CI
 
 El workflow `.github/workflows/ci.yml` se ejecuta en cada push a `master` o
-`diego-dev` y en cada pull request:
+`diego-dev`, en cada pull request y manualmente:
 
 1. Configura Java 17.
-2. Ejecuta `./mvnw -B test`.
+2. Ejecuta `./mvnw -B verify` (pruebas + reporte JaCoCo).
 3. Testcontainers levanta PostgreSQL 16 dentro del runner de GitHub Actions.
+4. Publica los reportes de tests y cobertura como artefactos (cobertura actual ~70 %).
+5. Construye la imagen Docker para validar el empaquetado.
 
 ---
 
@@ -454,13 +525,24 @@ El workflow `.github/workflows/ci.yml` se ejecuta en cada push a `master` o
 - **Nominatim/OpenStreetMap** para geocodificación y **MapLibre GL JS +
   OpenFreeMap** para el mapa. No requiere token ni registro; la atribución se
   muestra automáticamente.
+- **Caché Caffeine + límite de peticiones** para respetar la política de uso de
+  Nominatim.
+- **Rate limiting en memoria** para login/registro. En un despliegue con varias
+  instancias habría que moverlo a Redis o similar.
+- **CSP, X-Frame-Options y Referrer-Policy** como cabeceras de seguridad.
+- **Perfiles dev/prod** para separar logs SQL y Swagger de la configuración
+  pública.
 - **Chart.js** para las gráficas del dashboard.
 
 ### Limitaciones conocidas y siguientes pasos
 
 - Ampliar la cobertura con pruebas unitarias de servicios y controladores.
-- Agregar una pantalla de perfil para editar nombre, moneda y zona horaria.
-- Internacionalizar textos y formatos de fecha/moneda.
+- Presupuestos mensuales por categoría y alertas.
+- Gastos recurrentes e ingresos para calcular balance.
+- Adjuntar comprobantes (imágenes/PDF).
+- Importación de extractos bancarios y exportación a PDF.
+- Internacionalización completa de textos y formatos.
+- Despliegue con HTTPS y proxy inverso para uso público.
 
 ---
 

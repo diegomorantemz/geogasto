@@ -16,6 +16,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
@@ -43,10 +44,13 @@ public class SecurityConfig {
                                 "/js/**",
                                 "/images/**",
                                 "/favicon.ico",
+                                "/favicon.svg",
                                 "/error",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
-                                "/v3/api-docs/**"
+                                "/v3/api-docs/**",
+                                "/actuator/health",
+                                "/actuator/info"
                         ).permitAll()
 
                         // ===== API REST → JWT =====
@@ -66,6 +70,21 @@ public class SecurityConfig {
                         .accessDeniedHandler((request, response, accessDeniedException) ->
                                 writeError(response, HttpServletResponse.SC_FORBIDDEN,
                                         "Acceso denegado"))
+                )
+                .headers(headers -> headers
+                        .contentSecurityPolicy(csp -> csp.policyDirectives(
+                                "default-src 'self'; " +
+                                        "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com; " +
+                                        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com; " +
+                                        "img-src 'self' data: blob: https://openfreemap.org https://*.openfreemap.org https://tiles.openfreemap.org; " +
+                                        "font-src 'self' data: https://cdn.jsdelivr.net; " +
+                                        "connect-src 'self' https://openfreemap.org https://tiles.openfreemap.org https://*.openfreemap.org; " +
+                                        "worker-src 'self' blob:; object-src 'none'; " +
+                                        "frame-ancestors 'none'; base-uri 'self'"
+                        ))
+                        .frameOptions(frame -> frame.deny())
+                        .referrerPolicy(ref -> ref.policy(
+                                ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
                 )
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);

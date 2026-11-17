@@ -1,9 +1,9 @@
 package GeoGasto.domain.service;
 
 import GeoGasto.domain.dto.stats.StatsResponse;
+import GeoGasto.domain.exception.ResourceNotFoundException;
 import GeoGasto.persistence.entity.Expense;
 import GeoGasto.persistence.entity.User;
-import GeoGasto.domain.exception.ResourceNotFoundException;
 import GeoGasto.persistence.repository.ExpenseRepository;
 import GeoGasto.persistence.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -11,10 +11,20 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 @Service
@@ -26,25 +36,35 @@ public class StatsService {
 
     @Transactional(readOnly = true)
     public StatsResponse getStats(String email) {
-        User user = userRepository.findByEmail(email)
+        User user = userRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
 
-        // Traemos los últimos 12 meses de gastos
-        LocalDate hasta = LocalDate.now();
+        LocalDate hoy = LocalDate.now(zonaDe(user));
+        LocalDate hasta = hoy;
         LocalDate desde = hasta.minusMonths(11).withDayOfMonth(1);
+
         List<Expense> gastos = expenseRepository.findByUserIdAndFechaBetween(user.getId(), desde, hasta);
 
-        YearMonth mesActual = YearMonth.now();
+        YearMonth mesActual = YearMonth.from(hoy);
+        YearMonth mesAnterior = mesActual.minusMonths(1);
+
         List<Expense> gastosMes = gastos.stream()
                 .filter(e -> YearMonth.from(e.getFecha()).equals(mesActual))
                 .toList();
 
-        BigDecimal totalMes = gastosMes.stream()
-                .map(Expense::getMonto)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal totalMes = sumar(gastosMes);
+        BigDecimal totalMesAnterior = sumar(gastos.stream()
+                .filter(e -> YearMonth.from(e.getFecha()).equals(mesAnterior))
+                .toList());
+
+        BigDecimal variacion = calcularVariacion(totalMes, totalMesAnterior);
+        BigDecimal promedioDiario = totalMes.divide(
+                BigDecimal.valueOf(Math.max(hoy.getDayOfMonth(), 1)), 2, RoundingMode.HALF_UP);
 
         List<StatsResponse.CategoryStat> porCategoria = calcularPorCategoria(gastosMes);
-        List<StatsResponse.MonthStat> porMes = calcularPorMes(gastos);
+        StatsResponse.CategoryStat categoriaTop = porCategoria.stream()
+                .max(Comparator.comparing(StatsResponse.CategoryStat::getTotal))
+                .orElse(null);
 
         long cantidadCategorias = gastosMes.stream()
                 .map(e -> e.getCategory() != null ? e.getCategory().getId() : null)
@@ -52,13 +72,49 @@ public class StatsService {
                 .distinct()
                 .count();
 
+        long cantidadLugares = gastosMes.stream()
+                .map(e -> e.getLocation() != null ? e.getLocation().getId() : null)
+                .filter(Objects::nonNull)
+                .distinct()
+                .count();
+
         return StatsResponse.builder()
                 .totalMes(totalMes)
+                .totalMesAnterior(totalMesAnterior)
+                .variacionPorcentual(variacion)
+                .promedioDiario(promedioDiario)
+                .categoriaTopNombre(categoriaTop != null ? categoriaTop.getCategoryNombre() : null)
+                .categoriaTopColor(categoriaTop != null ? categoriaTop.getColor() : null)
+                .categoriaTopTotal(categoriaTop != null ? categoriaTop.getTotal() : null)
                 .cantidadGastos((long) gastosMes.size())
                 .cantidadCategorias(cantidadCategorias)
+                .cantidadLugares(cantidadLugares)
                 .gastosPorCategoria(porCategoria)
-                .gastosPorMes(porMes)
+                .gastosPorMes(calcularPorMes(gastos, YearMonth.from(desde)))
                 .build();
+    }
+
+    private static ZoneId zonaDe(User user) {
+        try {
+            return ZoneId.of(user.getTimezone());
+        } catch (DateTimeException | NullPointerException e) {
+            return ZoneId.of("America/Lima");
+        }
+    }
+
+    private static BigDecimal sumar(List<Expense> gastos) {
+        return gastos.stream()
+                .map(Expense::getMonto)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    private static BigDecimal calcularVariacion(BigDecimal actual, BigDecimal anterior) {
+        if (anterior.signum() == 0) {
+            return null;
+        }
+        return actual.subtract(anterior)
+                .multiply(BigDecimal.valueOf(100))
+                .divide(anterior, 1, RoundingMode.HALF_UP);
     }
 
     private List<StatsResponse.CategoryStat> calcularPorCategoria(List<Expense> gastos) {
@@ -84,12 +140,11 @@ public class StatsService {
         return new ArrayList<>(map.values());
     }
 
-    private List<StatsResponse.MonthStat> calcularPorMes(List<Expense> gastos) {
+    private List<StatsResponse.MonthStat> calcularPorMes(List<Expense> gastos, YearMonth inicio) {
         DateTimeFormatter inputFmt = DateTimeFormatter.ofPattern("yyyy-MM");
         DateTimeFormatter labelFmt = DateTimeFormatter.ofPattern("MMM yyyy", new Locale("es", "PE"));
 
         // Siempre devolvemos los últimos 12 meses, aunque algún mes no tenga gastos.
-        YearMonth inicio = YearMonth.now().minusMonths(11);
         Map<YearMonth, BigDecimal> totales = new TreeMap<>();
         for (int i = 0; i < 12; i++) {
             totales.put(inicio.plusMonths(i), BigDecimal.ZERO);

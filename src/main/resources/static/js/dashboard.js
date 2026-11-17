@@ -8,11 +8,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     await ensureProfile();
 
-    const email = getEmail();
-    if (email) {
-        document.getElementById('userEmail').textContent = email;
-        document.getElementById('userName').textContent = email.split('@')[0];
-    }
+    document.getElementById('userName').textContent = getNombre() || 'usuario';
 
     initCurrencySelector();
     await loadStats();
@@ -23,7 +19,7 @@ function initCurrencySelector() {
     if (!select) return;
 
     select.value = getMoneda();
-    select.addEventListener('change', changeCurrency);
+    select.addEventListener('change', () => changeCurrency(select.value));
 }
 
 async function changeCurrency(moneda) {
@@ -32,36 +28,72 @@ async function changeCurrency(moneda) {
         localStorage.setItem('geogasto_moneda', moneda);
         window.location.reload();
     } catch (err) {
-        alert('No se pudo cambiar la moneda: ' + err.message);
+        showStatsError('No se pudo cambiar la moneda: ' + err.message);
         document.getElementById('currencySelect').value = getMoneda();
     }
 }
 
 async function loadStats() {
+    const errorBox = document.getElementById('statsError');
+    errorBox.classList.add('d-none');
+
     try {
         const stats = await api.get('/stats');
 
-        // Contadores
-        document.getElementById('totalMes').textContent = formatMoney(stats.totalMes);
-        document.getElementById('cantidadGastos').textContent = stats.cantidadGastos;
-        document.getElementById('cantidadCategorias').textContent = stats.cantidadCategorias;
+        setText('totalMes', formatMoney(stats.totalMes));
+        setText('cantidadGastos', stats.cantidadGastos ?? 0);
+        setText('cantidadCategorias', stats.cantidadCategorias ?? 0);
+        setText('cantidadLugares', stats.cantidadLugares ?? 0);
+        setText('totalMesAnterior', formatMoney(stats.totalMesAnterior));
+        setText('promedioDiario', formatMoney(stats.promedioDiario));
+        setText('categoriaTop', stats.categoriaTopNombre || 'Sin datos');
+        setText('categoriaTopTotal', stats.categoriaTopTotal != null
+            ? formatMoney(stats.categoriaTopTotal)
+            : '');
+        renderVariacion(stats.variacionPorcentual);
 
-        // Gráfico por categoría
         renderCategoryChart(stats.gastosPorCategoria || []);
-
-        // Gráfico por mes
         renderMonthChart(stats.gastosPorMes || []);
-
     } catch (err) {
-        console.error('Error loading stats:', err);
+        showStatsError('No se pudieron cargar las estadísticas: ' + err.message);
     }
 }
 
+function showStatsError(message) {
+    const box = document.getElementById('statsError');
+    box.textContent = message;
+    box.classList.remove('d-none');
+}
+
+function setText(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+}
+
+function renderVariacion(value) {
+    const el = document.getElementById('variacion');
+    if (!el) return;
+
+    if (value == null) {
+        el.textContent = '—';
+        el.className = 'mb-0 text-muted';
+        return;
+    }
+
+    const numero = Number(value);
+    const sube = numero > 0;
+    const igual = numero === 0;
+    el.textContent = (sube ? '↑ +' : igual ? '→ ' : '↓ ') + numero.toFixed(1) + '%';
+    el.className = 'mb-0 fw-semibold ' + (igual ? 'text-muted' : sube ? 'text-danger' : 'text-success');
+}
+
 function renderCategoryChart(items) {
-    const ctx = document.getElementById('chartCategorias').getContext('2d');
+    const canvas = document.getElementById('chartCategorias');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
 
     if (items.length === 0) {
-        ctx.canvas.parentNode.innerHTML = '<p class="text-center text-muted mt-5">Sin datos este mes</p>';
+        canvas.parentNode.innerHTML = '<p class="text-center text-muted mt-5">Sin datos este mes</p>';
         return;
     }
 
@@ -73,7 +105,7 @@ function renderCategoryChart(items) {
             labels: items.map(i => i.categoryNombre),
             datasets: [{
                 data: items.map(i => Number(i.total)),
-                backgroundColor: items.map(i => i.color || '#0d6efd'),
+                backgroundColor: items.map(i => i.color || '#2563eb'),
                 borderWidth: 2,
                 borderColor: '#fff'
             }]
@@ -81,14 +113,12 @@ function renderCategoryChart(items) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            cutout: '62%',
             plugins: {
                 legend: { position: 'bottom' },
                 tooltip: {
                     callbacks: {
-                        label: (ctx) => {
-                            const value = ctx.parsed;
-                            return ctx.label + ': ' + currencySymbol() + ' ' + value.toFixed(2);
-                        }
+                        label: (ctx) => ctx.label + ': ' + formatMoney(ctx.parsed)
                     }
                 }
             }
@@ -97,10 +127,12 @@ function renderCategoryChart(items) {
 }
 
 function renderMonthChart(items) {
-    const ctx = document.getElementById('chartMeses').getContext('2d');
+    const canvas = document.getElementById('chartMeses');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
 
     if (items.length === 0) {
-        ctx.canvas.parentNode.innerHTML = '<p class="text-center text-muted mt-5">Sin datos</p>';
+        canvas.parentNode.innerHTML = '<p class="text-center text-muted mt-5">Sin datos</p>';
         return;
     }
 
@@ -111,9 +143,9 @@ function renderMonthChart(items) {
         data: {
             labels: items.map(i => i.mesLabel),
             datasets: [{
-                label: 'Gastos (' + currencySymbol() + ')',
+                label: 'Gastos',
                 data: items.map(i => Number(i.total)),
-                backgroundColor: '#0d6efd',
+                backgroundColor: '#2563eb',
                 borderRadius: 6
             }]
         },
@@ -124,7 +156,7 @@ function renderMonthChart(items) {
                 legend: { display: false },
                 tooltip: {
                     callbacks: {
-                        label: (ctx) => currencySymbol() + ' ' + ctx.parsed.y.toFixed(2)
+                        label: (ctx) => formatMoney(ctx.parsed.y)
                     }
                 }
             },
@@ -132,14 +164,10 @@ function renderMonthChart(items) {
                 y: {
                     beginAtZero: true,
                     ticks: {
-                        callback: (v) => currencySymbol() + ' ' + v
+                        callback: (v) => formatMoney(v)
                     }
                 }
             }
         }
     });
-}
-
-function formatMoney(amount) {
-    return currencySymbol() + ' ' + Number(amount).toFixed(2);
 }

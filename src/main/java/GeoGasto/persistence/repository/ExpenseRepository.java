@@ -3,6 +3,7 @@ package GeoGasto.persistence.repository;
 import GeoGasto.persistence.entity.Expense;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
@@ -15,7 +16,10 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long>, JpaSpec
 
     Page<Expense> findByUserId(Long userId, Pageable pageable);
 
+    @EntityGraph(attributePaths = {"category", "location"})
     List<Expense> findByUserIdAndFechaBetween(Long userId, LocalDate desde, LocalDate hasta);
 
     boolean existsByLocationId(Long locationId);
+
+    boolean existsByCategoryId(Long categoryId);
 }

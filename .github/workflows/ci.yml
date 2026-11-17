@@ -4,15 +4,16 @@ on:
   push:
     branches: [master, diego-dev]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
   test:
-    name: Pruebas
+    name: Compilar y probar
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
 
     steps:
       - name: Checkout
@@ -25,5 +26,34 @@ jobs:
           java-version: '17'
           cache: maven
 
-      - name: Ejecutar pruebas
-        run: ./mvnw -B test
+      - name: Ejecutar pruebas y cobertura
+        run: ./mvnw -B verify
+
+      - name: Publicar reporte de cobertura
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-report
+          path: target/site/jacoco/
+          if-no-files-found: ignore
+
+      - name: Publicar reporte de pruebas
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: target/surefire-reports/
+          if-no-files-found: ignore
+
+  docker:
+    name: Construir imagen Docker
+    runs-on: ubuntu-latest
+    needs: test
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Construir imagen
+        run: docker build -t geogasto:ci .

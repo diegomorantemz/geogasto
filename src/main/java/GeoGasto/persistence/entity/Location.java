@@ -2,11 +2,13 @@ package GeoGasto.persistence.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.BatchSize;
 
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "locations")
+@BatchSize(size = 50)
 @Getter
 @Setter
 @NoArgsConstructor

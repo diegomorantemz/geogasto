@@ -25,6 +25,10 @@ public class ExpenseResponse {
 
     private Long locationId;
     private String locationDireccion;
+    private Double locationLatitud;
+    private Double locationLongitud;
+    private String locationCiudad;
+    private String locationPais;
 
     private LocalDateTime createdAt;
 }
