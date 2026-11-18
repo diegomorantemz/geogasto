@@ -3,6 +3,20 @@
 const MAP_STYLE = 'https://tiles.openfreemap.org/styles/liberty';
 const MAP_CENTER = [-77.0428, -12.0464]; // [longitud, latitud]
 const MAP_ZOOM = 12;
+const FALLBACK_STYLE = {
+    version: 8,
+    sources: {
+        osm: {
+            type: 'raster',
+            tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+            tileSize: 256,
+            attribution: '© OpenStreetMap contributors'
+        }
+    },
+    layers: [
+        { id: 'osm', type: 'raster', source: 'osm' }
+    ]
+};
 
 let map;
 let marker;
@@ -11,6 +25,8 @@ let searchTimeout;
 let searchResultsCache = [];
 let savedPlaces = [];
 let submitting = false;
+let fallbackUsed = false;
+let fallbackTimer;
 
 document.addEventListener('DOMContentLoaded', async () => {
     if (!requireLogin()) return;
@@ -124,6 +140,12 @@ async function saveAsFavorite() {
 
 // ===== Map =====
 function initMap() {
+    if (typeof maplibregl === 'undefined') {
+        document.getElementById('mapLoading').classList.add('d-none');
+        showError('No se pudo cargar el mapa. Revisa tu conexión y recarga la página.');
+        return;
+    }
+
     map = new maplibregl.Map({
         container: 'map',
         style: MAP_STYLE,
@@ -133,13 +155,40 @@ function initMap() {
 
     map.addControl(new maplibregl.NavigationControl(), 'top-right');
 
+    fallbackTimer = setTimeout(() => {
+        if (!map.isStyleLoaded()) {
+            usarMapaAlternativo();
+        }
+    }, 8000);
+
+    map.on('load', () => {
+        clearTimeout(fallbackTimer);
+        document.getElementById('mapLoading').classList.add('d-none');
+    });
+
     map.on('click', async (ev) => {
         await reverseGeocode(ev.lngLat.lat, ev.lngLat.lng);
     });
 
     map.on('error', (ev) => {
         console.error('Error en el mapa:', ev.error);
+        if (!map.isStyleLoaded()) {
+            usarMapaAlternativo();
+        }
     });
+}
+
+function usarMapaAlternativo() {
+    if (fallbackUsed || !map) return;
+    fallbackUsed = true;
+    console.warn('OpenFreeMap no cargó; usando OpenStreetMap como respaldo.');
+    try {
+        map.setStyle(FALLBACK_STYLE, { diff: false });
+    } catch (err) {
+        console.error('Tampoco se pudo cargar el mapa alternativo:', err);
+        document.getElementById('mapLoading').classList.add('d-none');
+        showError('No se pudo cargar el mapa. Revisa tu conexión e inténtalo de nuevo.');
+    }
 }
 
 function setMarker(lat, lon) {

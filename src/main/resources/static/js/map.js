@@ -3,10 +3,27 @@
 const MAP_STYLE = 'https://tiles.openfreemap.org/styles/liberty';
 const MAP_CENTER = [-77.0428, -12.0464];
 const MAP_ZOOM = 11;
+const FALLBACK_STYLE = {
+    version: 8,
+    sources: {
+        osm: {
+            type: 'raster',
+            tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+            tileSize: 256,
+            attribution: '© OpenStreetMap contributors'
+        }
+    },
+    layers: [
+        { id: 'osm', type: 'raster', source: 'osm' }
+    ]
+};
 
 let map;
 let mapReady = false;
 let pendingData = null;
+let layersAdded = false;
+let fallbackUsed = false;
+let fallbackTimer;
 
 document.addEventListener('DOMContentLoaded', async () => {
     if (!requireLogin()) return;
@@ -37,6 +54,12 @@ async function loadCategories() {
 }
 
 function initMap() {
+    if (typeof maplibregl === 'undefined') {
+        showMapError('No se pudo cargar el motor del mapa. Revisa tu conexión y recarga la página.');
+        document.getElementById('mapLoading').classList.add('d-none');
+        return;
+    }
+
     map = new maplibregl.Map({
         container: 'expenseMap',
         style: MAP_STYLE,
@@ -47,9 +70,20 @@ function initMap() {
     map.addControl(new maplibregl.NavigationControl(), 'top-right');
     map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-right');
 
+    fallbackTimer = setTimeout(() => {
+        if (!map.isStyleLoaded()) {
+            usarMapaAlternativo();
+        }
+    }, 8000);
+
     map.on('load', () => {
+        clearTimeout(fallbackTimer);
+        document.getElementById('mapLoading').classList.add('d-none');
         mapReady = true;
-        addLayers();
+        if (!layersAdded) {
+            addLayers();
+            layersAdded = true;
+        }
         if (pendingData) {
             applyData(pendingData);
             pendingData = null;
@@ -60,7 +94,23 @@ function initMap() {
 
     map.on('error', (ev) => {
         console.error('Error en el mapa:', ev.error);
+        if (!map.isStyleLoaded()) {
+            usarMapaAlternativo();
+        }
     });
+}
+
+function usarMapaAlternativo() {
+    if (fallbackUsed || !map) return;
+    fallbackUsed = true;
+    console.warn('OpenFreeMap no cargó; usando OpenStreetMap como respaldo.');
+    try {
+        map.setStyle(FALLBACK_STYLE, { diff: false });
+    } catch (err) {
+        console.error('Tampoco se pudo cargar el mapa alternativo:', err);
+        showMapError('No se pudo cargar el mapa. Revisa tu conexión e inténtalo de nuevo.');
+        document.getElementById('mapLoading').classList.add('d-none');
+    }
 }
 
 function addLayers() {

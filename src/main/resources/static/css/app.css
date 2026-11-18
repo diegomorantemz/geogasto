@@ -274,7 +274,138 @@ body {
     box-shadow: 0 12px 30px rgba(15, 23, 42, .12);
 }
 
+/* ===== Navegación móvil ===== */
+.mobile-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 1040;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 56px;
+    padding: .65rem 1rem;
+    background: linear-gradient(120deg, var(--gg-primary-dark), var(--gg-primary));
+    box-shadow: 0 6px 20px rgba(15, 23, 42, .14);
+}
+
+.mobile-topbar .navbar-brand {
+    font-size: 1.05rem;
+    margin: 0;
+}
+
+.mobile-profile-link {
+    width: 38px;
+    height: 38px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    color: #fff;
+    font-size: 1.35rem;
+    background: rgba(255, 255, 255, .12);
+}
+
+.mobile-bottom-nav {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 1040;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-around;
+    min-height: 64px;
+    padding: .45rem .35rem calc(.45rem + env(safe-area-inset-bottom));
+    background: #fff;
+    border-top: 1px solid var(--gg-border);
+    box-shadow: 0 -6px 22px rgba(15, 23, 42, .08);
+}
+
+.mobile-nav-link,
+.mobile-nav-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: .1rem;
+    min-width: 0;
+    padding: .2rem;
+    border: 0;
+    background: none;
+    color: var(--gg-muted);
+    font-size: .68rem;
+    text-decoration: none;
+    line-height: 1;
+}
+
+.mobile-nav-link i,
+.mobile-nav-btn i {
+    font-size: 1.25rem;
+}
+
+.mobile-nav-link.active,
+.mobile-nav-btn.active {
+    color: var(--gg-primary);
+    font-weight: 600;
+}
+
+.mobile-nav-fab {
+    width: 54px;
+    height: 54px;
+    margin: 0 .25rem .45rem;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    color: #fff;
+    background: linear-gradient(135deg, var(--gg-primary-dark), var(--gg-primary));
+    box-shadow: 0 8px 18px rgba(37, 99, 235, .35);
+    font-size: 1.55rem;
+    text-decoration: none;
+}
+
+.mobile-nav-fab:active {
+    transform: scale(.96);
+}
+
+.mobile-menu-user {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    padding: .75rem;
+    border-radius: .85rem;
+    background: var(--gg-primary-soft);
+}
+
+.avatar-sm {
+    width: 42px;
+    height: 42px;
+    font-size: 1rem;
+}
+
+.min-w-0 {
+    min-width: 0;
+}
+
+.nav-user-text {
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.app-topnav .dropdown-menu {
+    z-index: 1055;
+}
+
+/* ===== Tablas como tarjetas en móvil ===== */
 @media (max-width: 767.98px) {
+    .app-authenticated {
+        padding-bottom: calc(78px + env(safe-area-inset-bottom));
+    }
+
     .map-shell,
     .map-page-shell {
         height: 65vh;
@@ -283,5 +414,85 @@ body {
 
     .stat-value {
         font-size: 1.3rem;
+    }
+
+    .responsive-table {
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    .responsive-table thead {
+        display: none;
+    }
+
+    .responsive-table tbody tr {
+        display: block;
+        margin-bottom: .75rem;
+        padding: .75rem 1rem;
+        border: 1px solid var(--gg-border);
+        border-radius: .9rem;
+        background: #fff;
+    }
+
+    .responsive-table tbody tr:last-child {
+        margin-bottom: 0;
+    }
+
+    .responsive-table tbody td {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: .32rem 0;
+        border: 0;
+        text-align: right;
+    }
+
+    .responsive-table tbody td::before {
+        content: attr(data-label);
+        flex: 0 0 auto;
+        color: var(--gg-muted);
+        font-weight: 600;
+        font-size: .75rem;
+        text-align: left;
+        padding-top: .15rem;
+    }
+
+    .responsive-table tbody td[data-label="Acciones"] {
+        justify-content: flex-end;
+        margin-top: .35rem;
+        padding-top: .6rem;
+        border-top: 1px dashed var(--gg-border);
+    }
+
+    .responsive-table tbody td[data-label="Acciones"]::before {
+        display: none;
+    }
+
+    .responsive-table tbody td[colspan] {
+        display: block;
+        text-align: center;
+    }
+
+    .responsive-table tbody td[colspan]::before {
+        display: none;
+    }
+
+    .responsive-table tbody td > * {
+        max-width: 100%;
+    }
+
+    .responsive-table .progress {
+        min-width: 90px;
+    }
+
+    .mobile-map-order {
+        order: -1;
+    }
+}
+
+@media (min-width: 768px) and (max-width: 1199.98px) {
+    .app-authenticated {
+        padding-bottom: calc(78px + env(safe-area-inset-bottom));
     }
 }

@@ -56,6 +56,14 @@ de desarrollo backend con Spring Boot y arquitectura REST.
 |---|---|
 | ![Mapa de gastos](docs/screenshots/map.png) | ![Inicio de sesión](docs/screenshots/login.png) |
 
+### Diseño móvil
+
+La app está pensada primero para móvil: barra superior compacta, navegación inferior con acción central para registrar gastos, menú “Más” y tablas convertidas en tarjetas.
+
+| Dashboard | Gastos |
+|---|---|
+| ![Dashboard móvil](docs/screenshots/mobile-dashboard.png) | ![Gastos móvil](docs/screenshots/mobile-expenses.png) |
+
 ---
 
 ## Características principales
@@ -130,6 +138,14 @@ de desarrollo backend con Spring Boot y arquitectura REST.
 - Cambio de contraseña con verificación de la contraseña actual.
 - Gestión de lugares guardados: listar, renombrar y eliminar.
 - Categorías por defecto al registrarse para empezar sin fricción.
+
+### Experiencia móvil
+- Navegación inferior con acción central para nuevo gasto y menú “Más”.
+- Topbar compacta y menú lateral con perfil y cierre de sesión.
+- Tablas de gastos, ingresos, presupuestos, recurrentes, categorías y lugares
+  convertidas en tarjetas en pantallas pequeñas.
+- El mapa aparece antes del formulario en “Nuevo gasto” en móvil.
+- Fallback automático del mapa a OpenStreetMap si OpenFreeMap no carga.
 
 ### Seguridad
 - Autenticación con JWT (JSON Web Tokens).
@@ -634,6 +650,8 @@ El workflow `.github/workflows/ci.yml` se ejecuta en cada push a `master` o
 - Ampliar la cobertura con pruebas unitarias de servicios y controladores.
 - Notificaciones por email cuando un presupuesto esté por excederse.
 - Almacenamiento de comprobantes en S3/objeto para despliegues multi-instancia.
+- El fallback de mapa usa tiles públicos de OpenStreetMap; para producción a
+  escala conviene un proveedor de tiles con SLA.
 - Importación de extractos bancarios y exportación a PDF.
 - Internacionalización completa de textos y formatos.
 - Despliegue con HTTPS y proxy inverso para uso público.

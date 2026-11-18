@@ -42,18 +42,18 @@ function renderTable(items) {
 
     tbody.innerHTML = items.map(c => `
         <tr>
-            <td>
+            <td data-label="Color">
                 <span class="d-inline-block rounded-circle border"
                       style="width: 24px; height: 24px; background-color: ${escapeHtml(c.color || '#dee2e6')};"></span>
             </td>
-            <td class="fw-semibold">${escapeHtml(c.nombre)}</td>
-            <td>
+            <td data-label="Nombre" class="fw-semibold">${escapeHtml(c.nombre)}</td>
+            <td data-label="Icono">
                 ${c.icono
         ? `<i class="bi ${escapeHtml(c.icono)} fs-5"></i>`
         : '<span class="text-muted">-</span>'}
             </td>
-            <td class="text-muted small">${formatDate(c.createdAt)}</td>
-            <td class="text-end">
+            <td data-label="Creada" class="text-muted small">${formatDate(c.createdAt)}</td>
+            <td data-label="Acciones" class="text-end">
                 <button class="btn btn-sm btn-outline-primary me-1" onclick="editCategory(${c.id})">
                     <i class="bi bi-pencil"></i>
                 </button>

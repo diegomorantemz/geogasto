@@ -142,17 +142,17 @@ function renderTable(items) {
 
     tbody.innerHTML = items.map(e => `
         <tr>
-            <td class="text-muted small text-nowrap">${formatDate(e.fecha)}</td>
-            <td class="fw-semibold">
+            <td data-label="Fecha" class="text-muted small text-nowrap">${formatDate(e.fecha)}</td>
+            <td data-label="Descripción" class="fw-semibold">
                 ${escapeHtml(e.descripcion || '-')}
                 ${e.receiptId ? '<i class="bi bi-paperclip text-primary ms-1" title="Tiene comprobante"></i>' : ''}
             </td>
-            <td>
+            <td data-label="Categoría">
                 ${e.categoryNombre
                     ? `<span class="badge bg-secondary">${escapeHtml(e.categoryNombre)}</span>`
                     : '<span class="text-muted small">Sin categoría</span>'}
             </td>
-            <td class="small text-muted">
+            <td data-label="Ubicación" class="small text-muted">
                 ${e.locationDireccion
                     ? `<span class="d-inline-block text-truncate align-middle" style="max-width: 230px"
                              title="${escapeHtml(e.locationDireccion)}">
@@ -160,8 +160,8 @@ function renderTable(items) {
                        </span>`
                     : '<span class="text-muted">Sin ubicación</span>'}
             </td>
-            <td class="text-end fw-bold text-nowrap">${formatMoney(e.monto)}</td>
-            <td class="text-end text-nowrap">
+            <td data-label="Monto" class="text-end fw-bold text-nowrap">${formatMoney(e.monto)}</td>
+            <td data-label="Acciones" class="text-end text-nowrap">
                 <button class="btn btn-sm btn-outline-secondary me-1" onclick="openReceipt(${e.id})"
                         aria-label="Comprobante" title="${e.receiptId ? 'Ver comprobante' : 'Adjuntar comprobante'}">
                     <i class="bi bi-paperclip"></i>

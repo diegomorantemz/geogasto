@@ -104,13 +104,13 @@ function renderTable() {
         const vencido = r.activo && r.proximaFecha < todayLocalISO();
         return `
             <tr>
-                <td>
+                <td data-label="Descripción">
                     <div class="fw-semibold">${escapeHtml(r.descripcion || 'Sin descripción')}</div>
                     ${r.locationDireccion
                         ? `<div class="small text-muted"><i class="bi bi-geo-alt"></i> ${escapeHtml(r.locationDireccion)}</div>`
                         : ''}
                 </td>
-                <td>
+                <td data-label="Categoría">
                     ${r.categoryNombre
                         ? `<span class="badge bg-light text-dark">
                                <span class="d-inline-block rounded-circle me-1"
@@ -119,19 +119,19 @@ function renderTable() {
                            </span>`
                         : '<span class="text-muted small">Sin categoría</span>'}
                 </td>
-                <td><span class="badge bg-secondary-subtle text-secondary-emphasis">${FREQUENCY_LABELS[r.frecuencia] || r.frecuencia}</span></td>
-                <td class="text-end fw-bold text-nowrap">${formatMoney(r.monto)}</td>
-                <td class="text-nowrap">
+                <td data-label="Frecuencia"><span class="badge bg-secondary-subtle text-secondary-emphasis">${FREQUENCY_LABELS[r.frecuencia] || r.frecuencia}</span></td>
+                <td data-label="Monto" class="text-end fw-bold text-nowrap">${formatMoney(r.monto)}</td>
+                <td data-label="Próximo gasto" class="text-nowrap">
                     <span class="${vencido ? 'text-danger fw-semibold' : ''}">${formatDate(r.proximaFecha)}</span>
                     ${vencido ? '<span class="badge bg-danger-subtle text-danger-emphasis ms-1">Vencido</span>' : ''}
                 </td>
-                <td class="text-muted small text-nowrap">${r.fechaFin ? formatDate(r.fechaFin) : '—'}</td>
-                <td>
+                <td data-label="Fin" class="text-muted small text-nowrap">${r.fechaFin ? formatDate(r.fechaFin) : '—'}</td>
+                <td data-label="Estado">
                     ${r.activo
                         ? '<span class="badge bg-success-subtle text-success-emphasis">Activa</span>'
                         : '<span class="badge bg-secondary-subtle text-secondary-emphasis">Pausada</span>'}
                 </td>
-                <td class="text-end text-nowrap">
+                <td data-label="Acciones" class="text-end text-nowrap">
                     <button class="btn btn-sm btn-outline-primary me-1" onclick="editRecurring(${r.id})"
                             aria-label="Editar recurrencia" title="Editar">
                         <i class="bi bi-pencil"></i>

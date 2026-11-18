@@ -41,13 +41,13 @@ function renderTable(items) {
 
     tbody.innerHTML = items.map(p => `
         <tr>
-            <td class="fw-semibold">
+            <td data-label="Alias" class="fw-semibold">
                 <i class="bi bi-bookmark-star text-warning"></i> ${escapeHtml(p.alias)}
             </td>
-            <td class="small">${escapeHtml(p.direccion || '-')}</td>
-            <td class="small text-muted">${escapeHtml(p.ciudad || '-')}${p.pais ? ', ' + escapeHtml(p.pais) : ''}</td>
-            <td class="text-center"><span class="badge bg-light text-dark">${p.usageCount || 0}</span></td>
-            <td class="text-end text-nowrap">
+            <td data-label="Dirección" class="small">${escapeHtml(p.direccion || '-')}</td>
+            <td data-label="Ciudad" class="small text-muted">${escapeHtml(p.ciudad || '-')}${p.pais ? ', ' + escapeHtml(p.pais) : ''}</td>
+            <td data-label="Usos" class="text-center"><span class="badge bg-light text-dark">${p.usageCount || 0}</span></td>
+            <td data-label="Acciones" class="text-end text-nowrap">
                 <button class="btn btn-sm btn-outline-primary me-1" onclick="openEditPlace(${p.id})"
                         aria-label="Renombrar lugar" title="Renombrar">
                     <i class="bi bi-pencil"></i>

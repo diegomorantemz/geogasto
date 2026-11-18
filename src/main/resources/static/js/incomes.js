@@ -93,15 +93,15 @@ function renderTable(items) {
 
     tbody.innerHTML = items.map(i => `
         <tr>
-            <td class="text-muted small text-nowrap">${formatDate(i.fecha)}</td>
-            <td class="fw-semibold">${escapeHtml(i.descripcion || '-')}</td>
-            <td>
+            <td data-label="Fecha" class="text-muted small text-nowrap">${formatDate(i.fecha)}</td>
+            <td data-label="Descripción" class="fw-semibold">${escapeHtml(i.descripcion || '-')}</td>
+            <td data-label="Fuente">
                 ${i.fuente
                     ? `<span class="badge bg-success-subtle text-success-emphasis">${escapeHtml(i.fuente)}</span>`
                     : '<span class="text-muted small">Sin fuente</span>'}
             </td>
-            <td class="text-end fw-bold text-success text-nowrap">+ ${formatMoney(i.monto)}</td>
-            <td class="text-end text-nowrap">
+            <td data-label="Monto" class="text-end fw-bold text-success text-nowrap">+ ${formatMoney(i.monto)}</td>
+            <td data-label="Acciones" class="text-end text-nowrap">
                 <button class="btn btn-sm btn-outline-primary me-1" onclick="editIncome(${i.id})"
                         aria-label="Editar ingreso" title="Editar">
                     <i class="bi bi-pencil"></i>

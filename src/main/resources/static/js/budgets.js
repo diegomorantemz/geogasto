@@ -80,17 +80,17 @@ function renderTable() {
         const width = Math.min(Math.max(pct, 0), 100);
         return `
             <tr>
-                <td class="fw-semibold">
+                <td data-label="Categoría" class="fw-semibold">
                     <span class="d-inline-block rounded-circle me-2"
                           style="width: 12px; height: 12px; background-color: ${escapeHtml(b.categoryColor || '#cbd5e1')};"></span>
                     ${escapeHtml(b.categoryNombre)}
                 </td>
-                <td class="text-end">${formatMoney(b.monto)}</td>
-                <td class="text-end">${formatMoney(b.gastado)}</td>
-                <td class="text-end ${Number(b.disponible) < 0 ? 'text-danger fw-semibold' : ''}">
+                <td data-label="Presupuesto" class="text-end">${formatMoney(b.monto)}</td>
+                <td data-label="Gastado" class="text-end">${formatMoney(b.gastado)}</td>
+                <td data-label="Disponible" class="text-end ${Number(b.disponible) < 0 ? 'text-danger fw-semibold' : ''}">
                     ${formatMoney(b.disponible)}
                 </td>
-                <td>
+                <td data-label="Progreso">
                     <div class="d-flex align-items-center gap-2">
                         <div class="progress flex-grow-1" style="height: 8px;" role="progressbar"
                              aria-valuemin="0" aria-valuemax="100" aria-valuenow="${width}">
@@ -99,8 +99,8 @@ function renderTable() {
                         <span class="small text-muted text-nowrap">${pct.toFixed(1)} %</span>
                     </div>
                 </td>
-                <td>${statusBadge(b.estado)}</td>
-                <td class="text-end text-nowrap">
+                <td data-label="Estado">${statusBadge(b.estado)}</td>
+                <td data-label="Acciones" class="text-end text-nowrap">
                     <button class="btn btn-sm btn-outline-primary me-1" onclick="editBudget(${b.id})"
                             aria-label="Editar presupuesto" title="Editar">
                         <i class="bi bi-pencil"></i>

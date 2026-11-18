@@ -76,10 +76,10 @@ public class SecurityConfig {
                                 "default-src 'self'; " +
                                         "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com; " +
                                         "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com; " +
-                                        "img-src 'self' data: blob: https://openfreemap.org https://*.openfreemap.org https://tiles.openfreemap.org; " +
+                                        "img-src 'self' data: blob: https://openfreemap.org https://*.openfreemap.org https://tiles.openfreemap.org https://tile.openstreetmap.org https://*.tile.openstreetmap.org; " +
                                         "font-src 'self' data: https://cdn.jsdelivr.net; " +
-                                        "connect-src 'self' https://openfreemap.org https://tiles.openfreemap.org https://*.openfreemap.org; " +
-                                        "worker-src 'self' blob:; object-src 'none'; " +
+                                        "connect-src 'self' https://openfreemap.org https://tiles.openfreemap.org https://*.openfreemap.org https://tile.openstreetmap.org https://*.tile.openstreetmap.org; " +
+                                        "worker-src 'self' blob:; child-src 'self' blob:; object-src 'none'; " +
                                         "frame-ancestors 'none'; base-uri 'self'"
                         ))
                         .frameOptions(frame -> frame.deny())
