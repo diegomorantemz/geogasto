@@ -74,11 +74,11 @@ public class SecurityConfig {
                 .headers(headers -> headers
                         .contentSecurityPolicy(csp -> csp.policyDirectives(
                                 "default-src 'self'; " +
-                                        "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com; " +
-                                        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://unpkg.com; " +
-                                        "img-src 'self' data: blob: https://openfreemap.org https://*.openfreemap.org https://tiles.openfreemap.org https://tile.openstreetmap.org https://*.tile.openstreetmap.org; " +
+                                        "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; " +
+                                        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; " +
+                                        "img-src 'self' data: blob: https://cdn.jsdelivr.net https://tile.openstreetmap.org https://*.tile.openstreetmap.org; " +
                                         "font-src 'self' data: https://cdn.jsdelivr.net; " +
-                                        "connect-src 'self' https://openfreemap.org https://tiles.openfreemap.org https://*.openfreemap.org https://tile.openstreetmap.org https://*.tile.openstreetmap.org; " +
+                                        "connect-src 'self' https://tile.openstreetmap.org https://*.tile.openstreetmap.org; " +
                                         "worker-src 'self' blob:; child-src 'self' blob:; object-src 'none'; " +
                                         "frame-ancestors 'none'; base-uri 'self'"
                         ))

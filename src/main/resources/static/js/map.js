@@ -1,29 +1,14 @@
-// Expense map
+// Expense map with Leaflet + OpenStreetMap
 
-const MAP_STYLE = 'https://tiles.openfreemap.org/styles/liberty';
-const MAP_CENTER = [-77.0428, -12.0464];
+const MAP_CENTER = [-12.0464, -77.0428]; // [latitud, longitud]
 const MAP_ZOOM = 11;
-const FALLBACK_STYLE = {
-    version: 8,
-    sources: {
-        osm: {
-            type: 'raster',
-            tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-            tileSize: 256,
-            attribution: '© OpenStreetMap contributors'
-        }
-    },
-    layers: [
-        { id: 'osm', type: 'raster', source: 'osm' }
-    ]
-};
+const OSM_URL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+const OSM_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 
 let map;
+let clusterGroup;
 let mapReady = false;
 let pendingData = null;
-let layersAdded = false;
-let fallbackUsed = false;
-let fallbackTimer;
 
 document.addEventListener('DOMContentLoaded', async () => {
     if (!requireLogin()) return;
@@ -54,36 +39,51 @@ async function loadCategories() {
 }
 
 function initMap() {
-    if (typeof maplibregl === 'undefined') {
-        showMapError('No se pudo cargar el motor del mapa. Revisa tu conexión y recarga la página.');
+    if (typeof L === 'undefined') {
         document.getElementById('mapLoading').classList.add('d-none');
+        showMapError('No se pudo cargar Leaflet. Revisa tu conexión y recarga la página.');
         return;
     }
 
-    map = new maplibregl.Map({
-        container: 'expenseMap',
-        style: MAP_STYLE,
+    map = L.map('expenseMap', {
         center: MAP_CENTER,
-        zoom: MAP_ZOOM
+        zoom: MAP_ZOOM,
+        zoomControl: true
     });
 
-    map.addControl(new maplibregl.NavigationControl(), 'top-right');
-    map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-right');
+    const tiles = L.tileLayer(OSM_URL, {
+        maxZoom: 19,
+        attribution: OSM_ATTRIBUTION
+    }).addTo(map);
 
-    fallbackTimer = setTimeout(() => {
-        if (!map.isStyleLoaded()) {
-            usarMapaAlternativo();
-        }
-    }, 8000);
-
-    map.on('load', () => {
-        clearTimeout(fallbackTimer);
+    tiles.on('load', () => {
         document.getElementById('mapLoading').classList.add('d-none');
-        mapReady = true;
-        if (!layersAdded) {
-            addLayers();
-            layersAdded = true;
+    });
+
+    let tileErrors = 0;
+    tiles.on('tileerror', () => {
+        tileErrors++;
+        document.getElementById('mapLoading').classList.add('d-none');
+        if (tileErrors === 6) {
+            showMapError('No se pudieron cargar los tiles del mapa. Revisa tu conexión.');
         }
+    });
+
+    if (typeof L.markerClusterGroup === 'function') {
+        clusterGroup = L.markerClusterGroup({
+            maxClusterRadius: 55,
+            showCoverageOnHover: false,
+            spiderfyOnMaxZoom: true
+        });
+        map.addLayer(clusterGroup);
+    } else {
+        clusterGroup = L.layerGroup().addTo(map);
+    }
+
+    map.whenReady(() => {
+        mapReady = true;
+        document.getElementById('mapLoading').classList.add('d-none');
+        setTimeout(() => map.invalidateSize(), 200);
         if (pendingData) {
             applyData(pendingData);
             pendingData = null;
@@ -91,125 +91,6 @@ function initMap() {
             loadMapData();
         }
     });
-
-    map.on('error', (ev) => {
-        console.error('Error en el mapa:', ev.error);
-        if (!map.isStyleLoaded()) {
-            usarMapaAlternativo();
-        }
-    });
-}
-
-function usarMapaAlternativo() {
-    if (fallbackUsed || !map) return;
-    fallbackUsed = true;
-    console.warn('OpenFreeMap no cargó; usando OpenStreetMap como respaldo.');
-    try {
-        map.setStyle(FALLBACK_STYLE, { diff: false });
-    } catch (err) {
-        console.error('Tampoco se pudo cargar el mapa alternativo:', err);
-        showMapError('No se pudo cargar el mapa. Revisa tu conexión e inténtalo de nuevo.');
-        document.getElementById('mapLoading').classList.add('d-none');
-    }
-}
-
-function addLayers() {
-    map.addSource('expenses', {
-        type: 'geojson',
-        data: { type: 'FeatureCollection', features: [] },
-        cluster: true,
-        clusterMaxZoom: 14,
-        clusterRadius: 55
-    });
-
-    map.addLayer({
-        id: 'clusters',
-        type: 'circle',
-        source: 'expenses',
-        filter: ['has', 'point_count'],
-        paint: {
-            'circle-color': [
-                'step', ['get', 'point_count'],
-                '#93c5fd', 10,
-                '#60a5fa', 30,
-                '#2563eb'
-            ],
-            'circle-radius': ['step', ['get', 'point_count'], 18, 10, 24, 30, 32],
-            'circle-stroke-width': 3,
-            'circle-stroke-color': '#ffffff',
-            'circle-opacity': 0.9
-        }
-    });
-
-    map.addLayer({
-        id: 'cluster-count',
-        type: 'symbol',
-        source: 'expenses',
-        filter: ['has', 'point_count'],
-        layout: {
-            'text-field': ['get', 'point_count_abbreviated'],
-            'text-font': ['Noto Sans Regular'],
-            'text-size': 12
-        },
-        paint: {
-            'text-color': '#ffffff'
-        }
-    });
-
-    map.addLayer({
-        id: 'unclustered',
-        type: 'circle',
-        source: 'expenses',
-        filter: ['!', ['has', 'point_count']],
-        paint: {
-            'circle-color': ['coalesce', ['get', 'color'], '#2563eb'],
-            'circle-radius': [
-                'interpolate', ['linear'], ['get', 'monto'],
-                0, 6,
-                100, 9,
-                500, 12,
-                2000, 16
-            ],
-            'circle-stroke-width': 2,
-            'circle-stroke-color': '#ffffff',
-            'circle-opacity': 0.92
-        }
-    });
-
-    map.on('click', 'clusters', async (event) => {
-        const feature = map.queryRenderedFeatures(event.point, { layers: ['clusters'] })[0];
-        if (!feature) return;
-        const clusterId = feature.properties.cluster_id;
-        const zoom = await map.getSource('expenses').getClusterExpansionZoom(clusterId);
-        map.easeTo({ center: feature.geometry.coordinates, zoom });
-    });
-
-    map.on('click', 'unclustered', (event) => {
-        const feature = event.features[0];
-        const p = feature.properties;
-        const html = `
-            <div class="map-popup">
-                <div class="fw-semibold mb-1">${escapeHtml(p.descripcion || 'Gasto')}</div>
-                <div class="fs-5 fw-bold text-primary mb-1">${formatMoney(p.monto)}</div>
-                <div class="small text-muted mb-1">
-                    <i class="bi bi-calendar3"></i> ${formatDate(p.fecha)}
-                    ${p.categoria ? ' · <i class="bi bi-tag"></i> ' + escapeHtml(p.categoria) : ''}
-                </div>
-                <div class="small">
-                    <i class="bi bi-geo-alt"></i> ${escapeHtml(p.direccion || 'Sin dirección')}
-                </div>
-            </div>
-        `;
-        new maplibregl.Popup({ maxWidth: '290px' })
-            .setLngLat(feature.geometry.coordinates)
-            .setHTML(html)
-            .addTo(map);
-    });
-
-    map.on('mouseenter', 'clusters', () => { map.getCanvas().style.cursor = 'pointer'; });
-    map.on('mouseleave', 'clusters', () => { map.getCanvas().style.cursor = ''; });
-    map.on('mouseenter', 'unclustered', () => { map.getCanvas().style.cursor = 'pointer'; });
-    map.on('mouseleave', 'unclustered', () => { map.getCanvas().style.cursor = ''; });
 }
 
 async function loadMapData() {
@@ -230,7 +111,6 @@ async function loadMapData() {
 
     try {
         const items = await api.get('/expenses/map?' + params.toString());
-
         if (!mapReady) {
             pendingData = items;
             return;
@@ -244,58 +124,70 @@ async function loadMapData() {
 }
 
 function applyData(items) {
-    const features = (items || [])
-        .filter(e => e.latitud != null && e.longitud != null)
-        .map(e => ({
-            type: 'Feature',
-            geometry: {
-                type: 'Point',
-                coordinates: [e.longitud, e.latitud]
-            },
-            properties: {
-                id: e.id,
-                monto: Number(e.monto),
-                fecha: e.fecha,
-                descripcion: e.descripcion || 'Gasto',
-                categoria: e.categoryNombre || '',
-                color: e.categoryColor || '#2563eb',
-                direccion: e.direccion || '',
-                ciudad: e.ciudad || '',
-                pais: e.pais || ''
-            }
-        }));
+    const gastos = (items || []).filter(e => e.latitud != null && e.longitud != null);
+    clusterGroup.clearLayers();
 
-    const source = map.getSource('expenses');
-    if (source) {
-        source.setData({ type: 'FeatureCollection', features });
-    }
+    gastos.forEach(e => {
+        const marker = L.marker([e.latitud, e.longitud], {
+            icon: expenseIcon(e.categoryColor || '#2563eb')
+        });
 
-    renderSummary(items, features);
-    fitToData(features);
+        marker.bindPopup(`
+            <div class="map-popup">
+                <div class="fw-semibold mb-1">${escapeHtml(e.descripcion || 'Gasto')}</div>
+                <div class="fs-5 fw-bold text-primary mb-1">${formatMoney(e.monto)}</div>
+                <div class="small text-muted mb-1">
+                    <i class="bi bi-calendar3"></i> ${formatDate(e.fecha)}
+                    ${e.categoryNombre ? ' · <i class="bi bi-tag"></i> ' + escapeHtml(e.categoryNombre) : ''}
+                </div>
+                <div class="small">
+                    <i class="bi bi-geo-alt"></i> ${escapeHtml(e.direccion || 'Sin dirección')}
+                </div>
+            </div>
+        `, { maxWidth: 290 });
+
+        clusterGroup.addLayer(marker);
+    });
+
+    renderSummary(items, gastos);
+    fitToData(gastos);
 }
 
-function renderSummary(items, features) {
+function expenseIcon(color) {
+    return L.divIcon({
+        className: 'expense-map-marker',
+        html: `<span style="background-color:${escapeHtml(color)}"></span>`,
+        iconSize: [18, 18],
+        iconAnchor: [9, 9],
+        popupAnchor: [0, -12]
+    });
+}
+
+function renderSummary(items, gastos) {
     const total = (items || []).reduce((sum, e) => sum + Number(e.monto || 0), 0);
     document.getElementById('mapTotal').textContent = formatMoney(total);
-    document.getElementById('mapCount').textContent = features.length === 1
+    document.getElementById('mapCount').textContent = gastos.length === 1
         ? '1 gasto con ubicación'
-        : features.length + ' gastos con ubicación';
-    document.getElementById('mapSummary').classList.toggle('d-none', features.length === 0);
-    document.getElementById('mapEmpty').classList.toggle('d-none', features.length > 0);
-    document.getElementById('mapLimitNote').classList.toggle('d-none', features.length < 5000);
+        : gastos.length + ' gastos con ubicación';
+    document.getElementById('mapSummary').classList.toggle('d-none', gastos.length === 0);
+    document.getElementById('mapEmpty').classList.toggle('d-none', gastos.length > 0);
+    document.getElementById('mapLimitNote').classList.toggle('d-none', gastos.length < 5000);
 }
 
-function fitToData(features) {
-    if (!features.length) return;
+function fitToData(gastos) {
+    if (!gastos.length) return;
 
-    if (features.length === 1) {
-        map.easeTo({ center: features[0].geometry.coordinates, zoom: 14 });
+    if (gastos.length === 1) {
+        map.setView([gastos[0].latitud, gastos[0].longitud], 14);
         return;
     }
 
-    const bounds = new maplibregl.LngLatBounds();
-    features.forEach(f => bounds.extend(f.geometry.coordinates));
-    map.fitBounds(bounds, { padding: 70, maxZoom: 14 });
+    if (typeof clusterGroup.getBounds === 'function') {
+        map.fitBounds(clusterGroup.getBounds().pad(0.15));
+    } else {
+        const bounds = L.latLngBounds(gastos.map(e => [e.latitud, e.longitud]));
+        map.fitBounds(bounds.pad(0.15));
+    }
 }
 
 function clearMapFilters() {

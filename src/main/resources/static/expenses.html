@@ -25,9 +25,9 @@
             <button class="btn btn-outline-primary" onclick="exportExpenses()">
                 <i class="bi bi-download"></i> Exportar CSV
             </button>
-            <button class="btn btn-primary" onclick="openNewExpenseModal()">
+            <a class="btn btn-primary" href="/new-expense.html">
                 <i class="bi bi-plus-circle"></i> Nuevo gasto
-            </button>
+            </a>
         </div>
     </div>
 
@@ -108,72 +108,6 @@
     </div>
 
 </main>
-
-<!-- Modal -->
-<div class="modal fade" id="expenseModal" tabindex="-1" aria-labelledby="expenseModalTitle" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form id="expenseForm" onsubmit="handleSaveExpense(event)">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="expenseModalTitle">Nuevo gasto</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-                </div>
-                <div class="modal-body">
-                    <input type="hidden" id="expenseId">
-                    <input type="hidden" id="expenseLocationId">
-
-                    <div class="row">
-                        <div class="col-md-7 mb-3">
-                            <label for="expenseMonto" class="form-label">Monto</label>
-                            <input type="number" id="expenseMonto" class="form-control" required
-                                   step="0.01" min="0.01" placeholder="0.00">
-                        </div>
-                        <div class="col-md-5 mb-3">
-                            <label for="expenseFecha" class="form-label">Fecha</label>
-                            <input type="date" id="expenseFecha" class="form-control" required>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="expenseDescripcion" class="form-label">Descripción</label>
-                        <input type="text" id="expenseDescripcion" class="form-control" maxlength="255"
-                               placeholder="Ej: Almuerzo en el centro">
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="expenseCategory" class="form-label">Categoría</label>
-                        <select id="expenseCategory" class="form-select">
-                            <option value="">Sin categoría</option>
-                        </select>
-                    </div>
-
-                    <div id="expenseLocationBox" class="alert alert-info py-2 d-none">
-                        <div class="d-flex justify-content-between align-items-center gap-2">
-                            <span class="small">
-                                <i class="bi bi-geo-alt"></i> <span id="expenseLocationText"></span>
-                            </span>
-                            <button type="button" class="btn btn-sm btn-link text-danger p-0"
-                                    onclick="clearExpenseLocation()" title="Quitar ubicación">
-                                Quitar
-                            </button>
-                        </div>
-                    </div>
-
-                    <p class="small text-muted mb-0">
-                        Para agregar o cambiar la ubicación, usa
-                        <a href="/new-expense.html">Nuevo gasto</a>.
-                    </p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary" id="expenseSaveBtn">
-                        <i class="bi bi-check2"></i> Guardar
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
 
 <!-- Modal de comprobante -->
 <div class="modal fade" id="receiptModal" tabindex="-1" aria-labelledby="receiptModalTitle" aria-hidden="true">

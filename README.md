@@ -58,7 +58,7 @@ de desarrollo backend con Spring Boot y arquitectura REST.
 
 ### Diseño móvil
 
-La app está pensada primero para móvil: barra superior compacta, navegación inferior con acción central para registrar gastos, menú “Más” y tablas convertidas en tarjetas.
+La app está pensada primero para móvil: barra superior compacta, navegación inferior con acción central para registrar gastos, menú “Más” y tablas convertidas en tarjetas. La marca GeoGasto lleva al dashboard; no hay botón “Inicio” para reducir ruido.
 
 | Dashboard | Gastos |
 |---|---|
@@ -81,7 +81,7 @@ La app está pensada primero para móvil: barra superior compacta, navegación i
 ### Ubicaciones (feature principal)
 - **GPS actual**: obtiene la ubicación del navegador y la convierte en dirección.
 - **Búsqueda por nombre**: autocompletado con lugares reales (Nominatim/OpenStreetMap).
-- **Selección en mapa**: clic en el mapa MapLibre para marcar un punto exacto.
+- **Selección en mapa**: clic en el mapa Leaflet para marcar un punto exacto.
 - **Lugares guardados**: alias como "Casa" o "Trabajo" para usar en un clic.
 
 ### Dashboard
@@ -127,7 +127,7 @@ La app está pensada primero para móvil: barra superior compacta, navegación i
 - Almacenamiento local configurable y volumen Docker para persistencia.
 
 ### Mapa de gastos
-- Vista dedicada `/map.html` con MapLibre GL JS.
+- Vista dedicada `/map.html` con Leaflet y tiles de OpenStreetMap.
 - Agrupación de marcadores (clusters) y popups con el detalle de cada gasto.
 - Filtros por fecha, categoría y descripción.
 - Total y cantidad de gastos filtrados.
@@ -144,8 +144,9 @@ La app está pensada primero para móvil: barra superior compacta, navegación i
 - Topbar compacta y menú lateral con perfil y cierre de sesión.
 - Tablas de gastos, ingresos, presupuestos, recurrentes, categorías y lugares
   convertidas en tarjetas en pantallas pequeñas.
-- El mapa aparece antes del formulario en “Nuevo gasto” en móvil.
-- Fallback automático del mapa a OpenStreetMap si OpenFreeMap no carga.
+- Un único formulario con mapa para crear y editar gastos.
+- El mapa aparece antes del formulario en móvil.
+- Mapa con Leaflet y tiles de OpenStreetMap, sin API key.
 
 ### Seguridad
 - Autenticación con JWT (JSON Web Tokens).
@@ -191,8 +192,8 @@ El proyecto sigue una arquitectura en capas clásica de Spring Boot:
 
 Servicios externos:
 - **Nominatim (OpenStreetMap)**: geocodificación (búsqueda y reverse).
-- **OpenFreeMap**: tiles vectoriales del mapa (estilos Liberty, Bright, Positron, etc.).
-- **MapLibre GL JS**: renderizado interactivo del mapa en el navegador.
+- **OpenStreetMap tiles**: teselas raster del mapa.
+- **Leaflet 1.9 + MarkerCluster**: renderizado interactivo y agrupación de marcadores.
 
 ---
 
@@ -223,8 +224,9 @@ Servicios externos:
 | Bootstrap 5.3 | Framework CSS responsive |
 | Bootstrap Icons | Iconografía |
 | JavaScript (vanilla) | Lógica de cliente |
-| MapLibre GL JS 5.24 | Mapas vectoriales interactivos |
-| OpenFreeMap | Tiles vectoriales gratuitos (sin API key) |
+| Leaflet 1.9.4 | Mapas interactivos con tiles raster |
+| MarkerCluster 1.5.3 | Agrupación de marcadores |
+| OpenStreetMap | Tiles gratuitos (sin API key) |
 | Chart.js 4.4 | Gráficos del dashboard |
 
 ### Base de datos
@@ -569,6 +571,7 @@ docker-compose.yml        # PostgreSQL + aplicación
    - Busca un lugar por nombre.
    - Haz clic o arrastra el marcador en el mapa.
    - O usa un lugar guardado ("Casa", "Trabajo", etc.).
+   - El mismo formulario se usa para editar un gasto desde el lápiz de la lista.
 4. **Consulta, busca y filtra** tus gastos en `/expenses.html` por fecha,
    categoría y descripción.
 5. **Adjunta comprobantes** (imagen o PDF) desde el botón de clip de cada gasto.
@@ -616,7 +619,7 @@ El workflow `.github/workflows/ci.yml` se ejecuta en cada push a `master` o
 1. Configura Java 17.
 2. Ejecuta `./mvnw -B verify` (pruebas + reporte JaCoCo).
 3. Testcontainers levanta PostgreSQL 16 dentro del runner de GitHub Actions.
-4. Publica los reportes de tests y cobertura como artefactos (cobertura actual ~74 %).
+4. Publica los reportes de tests y cobertura como artefactos (cobertura actual ~75 %).
 5. Construye la imagen Docker para validar el empaquetado.
 
 ---
@@ -631,8 +634,8 @@ El workflow `.github/workflows/ci.yml` se ejecuta en cada push a `master` o
 - **Aislamiento por usuario**: cada consulta filtra por el usuario autenticado.
 - **Flyway** como única fuente del esquema; Hibernate solo valida (`ddl-auto=validate`).
 - **Filtros en base de datos** mediante `Specification`, no en el navegador.
-- **Nominatim/OpenStreetMap** para geocodificación y **MapLibre GL JS +
-  OpenFreeMap** para el mapa. No requiere token ni registro; la atribución se
+- **Nominatim/OpenStreetMap** para geocodificación y **Leaflet + tiles de
+  OpenStreetMap** para el mapa. No requiere token ni registro; la atribución se
   muestra automáticamente.
 - **Caché Caffeine + límite de peticiones** para respetar la política de uso de
   Nominatim.
@@ -650,8 +653,8 @@ El workflow `.github/workflows/ci.yml` se ejecuta en cada push a `master` o
 - Ampliar la cobertura con pruebas unitarias de servicios y controladores.
 - Notificaciones por email cuando un presupuesto esté por excederse.
 - Almacenamiento de comprobantes en S3/objeto para despliegues multi-instancia.
-- El fallback de mapa usa tiles públicos de OpenStreetMap; para producción a
-  escala conviene un proveedor de tiles con SLA.
+- Los tiles públicos de OpenStreetMap son suficientes para demo/bajo tráfico;
+  para producción a escala conviene un proveedor de tiles con SLA.
 - Importación de extractos bancarios y exportación a PDF.
 - Internacionalización completa de textos y formatos.
 - Despliegue con HTTPS y proxy inverso para uso público.

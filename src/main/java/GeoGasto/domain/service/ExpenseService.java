@@ -157,6 +157,24 @@ public class ExpenseService {
     }
 
     @Transactional
+    public ExpenseResponse actualizarConUbicacion(String email, Long id, ExpenseWithLocationRequest request) {
+        User user = obtenerUsuario(email);
+        Expense expense = obtenerPropio(user, id);
+        Location ubicacionAnterior = expense.getLocation();
+
+        expense.setMonto(request.getMonto());
+        expense.setFecha(request.getFecha());
+        expense.setDescripcion(request.getDescripcion());
+        expense.setCategory(obtenerCategoria(user, request.getCategoryId()));
+        expense.setLocation(obtenerOCrearUbicacion(user, request));
+
+        ExpenseResponse response = toResponse(expenseRepository.save(expense));
+        expenseRepository.flush();
+        eliminarUbicacionSiHuerfana(ubicacionAnterior);
+        return response;
+    }
+
+    @Transactional
     public void eliminar(String email, Long id) {
         User user = obtenerUsuario(email);
         Expense expense = obtenerPropio(user, id);

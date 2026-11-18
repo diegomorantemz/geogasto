@@ -108,6 +108,15 @@ public class ExpenseController {
         return ResponseEntity.ok(expenseService.actualizar(auth.getName(), id, request));
     }
 
+    @PutMapping("/{id}/with-location")
+    public ResponseEntity<ExpenseResponse> actualizarConUbicacion(
+            Authentication auth,
+            @PathVariable Long id,
+            @Valid @RequestBody ExpenseWithLocationRequest request
+    ) {
+        return ResponseEntity.ok(expenseService.actualizarConUbicacion(auth.getName(), id, request));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> eliminar(Authentication auth, @PathVariable Long id) {
         expenseService.eliminar(auth.getName(), id);

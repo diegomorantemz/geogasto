@@ -1,22 +1,9 @@
-// New expense with location
+// Create / edit expense with map
 
-const MAP_STYLE = 'https://tiles.openfreemap.org/styles/liberty';
-const MAP_CENTER = [-77.0428, -12.0464]; // [longitud, latitud]
+const MAP_CENTER = [-12.0464, -77.0428]; // [latitud, longitud]
 const MAP_ZOOM = 12;
-const FALLBACK_STYLE = {
-    version: 8,
-    sources: {
-        osm: {
-            type: 'raster',
-            tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-            tileSize: 256,
-            attribution: '© OpenStreetMap contributors'
-        }
-    },
-    layers: [
-        { id: 'osm', type: 'raster', source: 'osm' }
-    ]
-};
+const OSM_URL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+const OSM_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 
 let map;
 let marker;
@@ -25,14 +12,14 @@ let searchTimeout;
 let searchResultsCache = [];
 let savedPlaces = [];
 let submitting = false;
-let fallbackUsed = false;
-let fallbackTimer;
+let editingId = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
     if (!requireLogin()) return;
 
     await ensureProfile();
 
+    editingId = new URLSearchParams(window.location.search).get('id');
     const hoy = todayLocalISO();
     document.getElementById('fecha').value = hoy;
     document.getElementById('fecha').max = hoy;
@@ -41,6 +28,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadSavedPlaces();
     initMap();
     initSearch();
+
+    if (editingId) {
+        await loadExpense(editingId);
+    }
 });
 
 // ===== Load categories =====
@@ -79,6 +70,39 @@ async function loadSavedPlaces() {
     }
 }
 
+async function loadExpense(id) {
+    try {
+        const expense = await api.get('/expenses/' + id);
+        document.getElementById('pageTitle').textContent = 'Editar gasto';
+        document.getElementById('pageSubtitle').textContent = 'Actualiza los datos y la ubicación del gasto.';
+        document.getElementById('saveExpenseBtn').innerHTML = '<i class="bi bi-check2-circle"></i> Guardar cambios';
+
+        document.getElementById('monto').value = expense.monto;
+        document.getElementById('fecha').value = expense.fecha;
+        document.getElementById('descripcion').value = expense.descripcion || '';
+        document.getElementById('categoryId').value = expense.categoryId || '';
+
+        if (expense.locationId) {
+            selectedLocation = {
+                locationId: expense.locationId,
+                direccion: expense.locationDireccion,
+                latitud: expense.locationLatitud,
+                longitud: expense.locationLongitud,
+                ciudad: expense.locationCiudad,
+                pais: expense.locationPais,
+                placeId: null
+            };
+            if (expense.locationLatitud != null && expense.locationLongitud != null) {
+                setMarker(expense.locationLatitud, expense.locationLongitud);
+            }
+            updateLocationDisplay();
+        }
+    } catch (err) {
+        showError('No se pudo cargar el gasto: ' + err.message);
+        setTimeout(() => window.location.href = '/expenses.html', 1500);
+    }
+}
+
 async function useSavedPlace(id) {
     const place = savedPlaces.find(p => p.id === id);
     if (!place) return;
@@ -93,10 +117,11 @@ async function useSavedPlace(id) {
         placeId: place.placeId
     };
 
-    setMarker(place.latitud, place.longitud);
+    if (place.latitud != null && place.longitud != null) {
+        setMarker(place.latitud, place.longitud);
+    }
     updateLocationDisplay();
 
-    // Registrar uso (silencioso si falla)
     try {
         await api.post('/saved-places/' + id + '/use', {});
     } catch (e) {
@@ -126,11 +151,7 @@ async function saveAsFavorite() {
             selectedLocation.locationId = loc.id;
         }
 
-        await api.post('/saved-places', {
-            alias: alias.trim(),
-            locationId
-        });
-
+        await api.post('/saved-places', { alias: alias.trim(), locationId });
         showSuccess('Lugar guardado como "' + alias.trim() + '"');
         await loadSavedPlaces();
     } catch (err) {
@@ -140,72 +161,64 @@ async function saveAsFavorite() {
 
 // ===== Map =====
 function initMap() {
-    if (typeof maplibregl === 'undefined') {
+    if (typeof L === 'undefined') {
         document.getElementById('mapLoading').classList.add('d-none');
-        showError('No se pudo cargar el mapa. Revisa tu conexión y recarga la página.');
+        showError('No se pudo cargar Leaflet. Revisa tu conexión y recarga la página.');
         return;
     }
 
-    map = new maplibregl.Map({
-        container: 'map',
-        style: MAP_STYLE,
+    map = L.map('map', {
         center: MAP_CENTER,
-        zoom: MAP_ZOOM
+        zoom: MAP_ZOOM,
+        zoomControl: true
     });
 
-    map.addControl(new maplibregl.NavigationControl(), 'top-right');
+    const tiles = L.tileLayer(OSM_URL, {
+        maxZoom: 19,
+        attribution: OSM_ATTRIBUTION
+    }).addTo(map);
 
-    fallbackTimer = setTimeout(() => {
-        if (!map.isStyleLoaded()) {
-            usarMapaAlternativo();
-        }
-    }, 8000);
-
-    map.on('load', () => {
-        clearTimeout(fallbackTimer);
+    tiles.on('load', () => document.getElementById('mapLoading').classList.add('d-none'));
+    let tileErrors = 0;
+    tiles.on('tileerror', () => {
+        tileErrors++;
         document.getElementById('mapLoading').classList.add('d-none');
+        if (tileErrors === 6) {
+            showError('No se pudieron cargar los tiles del mapa. Revisa tu conexión.');
+        }
+    });
+
+    map.whenReady(() => {
+        document.getElementById('mapLoading').classList.add('d-none');
+        setTimeout(() => map.invalidateSize(), 200);
     });
 
     map.on('click', async (ev) => {
-        await reverseGeocode(ev.lngLat.lat, ev.lngLat.lng);
+        await reverseGeocode(ev.latlng.lat, ev.latlng.lng);
     });
-
-    map.on('error', (ev) => {
-        console.error('Error en el mapa:', ev.error);
-        if (!map.isStyleLoaded()) {
-            usarMapaAlternativo();
-        }
-    });
-}
-
-function usarMapaAlternativo() {
-    if (fallbackUsed || !map) return;
-    fallbackUsed = true;
-    console.warn('OpenFreeMap no cargó; usando OpenStreetMap como respaldo.');
-    try {
-        map.setStyle(FALLBACK_STYLE, { diff: false });
-    } catch (err) {
-        console.error('Tampoco se pudo cargar el mapa alternativo:', err);
-        document.getElementById('mapLoading').classList.add('d-none');
-        showError('No se pudo cargar el mapa. Revisa tu conexión e inténtalo de nuevo.');
-    }
 }
 
 function setMarker(lat, lon) {
-    if (marker) {
-        marker.setLngLat([lon, lat]);
-    } else {
-        marker = new maplibregl.Marker({ draggable: true })
-            .setLngLat([lon, lat])
-            .addTo(map);
+    if (lat == null || lon == null || !map) return;
 
+    const icon = L.divIcon({
+        className: 'location-map-marker',
+        html: '<i class="bi bi-geo-alt-fill"></i>',
+        iconSize: [30, 30],
+        iconAnchor: [15, 30]
+    });
+
+    if (marker) {
+        marker.setLatLng([lat, lon]);
+    } else {
+        marker = L.marker([lat, lon], { draggable: true, icon }).addTo(map);
         marker.on('dragend', async () => {
-            const pos = marker.getLngLat();
+            const pos = marker.getLatLng();
             await reverseGeocode(pos.lat, pos.lng);
         });
     }
 
-    map.flyTo({ center: [lon, lat], zoom: 16 });
+    map.flyTo([lat, lon], 16, { duration: 0.7 });
 }
 
 // ===== Current location =====
@@ -351,25 +364,12 @@ async function handleSubmit(event) {
         return;
     }
 
-    const body = {
+    const base = {
         monto,
         fecha: document.getElementById('fecha').value,
         descripcion: document.getElementById('descripcion').value.trim() || null,
         categoryId: categoryId ? parseInt(categoryId) : null
     };
-
-    if (selectedLocation && selectedLocation.locationId) {
-        body.locationId = selectedLocation.locationId;
-    } else if (selectedLocation) {
-        body.locationDireccion = selectedLocation.direccion;
-        body.locationLatitud = selectedLocation.latitud;
-        body.locationLongitud = selectedLocation.longitud;
-        body.locationCiudad = selectedLocation.ciudad;
-        body.locationPais = selectedLocation.pais;
-        body.locationPlaceId = selectedLocation.placeId;
-    } else {
-        body.locationId = null;
-    }
 
     const btn = document.getElementById('saveExpenseBtn');
     const original = btn.innerHTML;
@@ -378,13 +378,39 @@ async function handleSubmit(event) {
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Guardando...';
 
     try {
-        if (selectedLocation && !selectedLocation.locationId) {
-            await api.post('/expenses/with-location', body);
+        if (selectedLocation && selectedLocation.locationId) {
+            base.locationId = selectedLocation.locationId;
+            if (editingId) {
+                await api.put('/expenses/' + editingId, base);
+            } else {
+                await api.post('/expenses', base);
+            }
+        } else if (selectedLocation) {
+            const body = {
+                ...base,
+                locationDireccion: selectedLocation.direccion,
+                locationLatitud: selectedLocation.latitud,
+                locationLongitud: selectedLocation.longitud,
+                locationCiudad: selectedLocation.ciudad,
+                locationPais: selectedLocation.pais,
+                locationPlaceId: selectedLocation.placeId
+            };
+            if (editingId) {
+                await api.put('/expenses/' + editingId + '/with-location', body);
+            } else {
+                await api.post('/expenses/with-location', body);
+            }
         } else {
-            await api.post('/expenses', body);
+            base.locationId = null;
+            if (editingId) {
+                await api.put('/expenses/' + editingId, base);
+            } else {
+                await api.post('/expenses', base);
+            }
         }
-        showSuccess('Gasto registrado');
-        setTimeout(() => window.location.href = '/expenses.html', 800);
+
+        showSuccess(editingId ? 'Gasto actualizado' : 'Gasto registrado');
+        setTimeout(() => window.location.href = '/expenses.html', 700);
     } catch (err) {
         showError(err.message);
         submitting = false;

@@ -1,15 +1,11 @@
-// Expenses page logic
+// Expenses list: filters, pagination, receipts and navigation to the unified form.
 
-let expenseModal;
 let receiptModal;
-let categories = [];
 let currentPage = 0;
 const PAGE_SIZE = 10;
 let totalPages = 1;
 let lastPageSize = 0;
-let submitting = false;
 let receiptExpenseId = null;
-let receiptFileName = null;
 let receiptSubmitting = false;
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -17,12 +13,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     await ensureProfile();
 
-    expenseModal = new bootstrap.Modal(document.getElementById('expenseModal'));
     receiptModal = new bootstrap.Modal(document.getElementById('receiptModal'));
 
     const hoy = todayLocalISO();
-    document.getElementById('expenseFecha').value = hoy;
-    document.getElementById('expenseFecha').max = hoy;
     document.getElementById('filterFrom').max = hoy;
     document.getElementById('filterTo').max = hoy;
 
@@ -30,26 +23,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadExpenses();
 });
 
-// ===== Load categories for dropdowns =====
+// ===== Categories for filter =====
 async function loadCategories() {
     try {
-        categories = await api.get('/categories');
-
+        const categories = await api.get('/categories');
         const filterSelect = document.getElementById('filterCategory');
-        const modalSelect = document.getElementById('expenseCategory');
-
-        const options = categories
-            .map(c => `<option value="${c.id}">${escapeHtml(c.nombre)}</option>`)
-            .join('');
-
-        filterSelect.innerHTML = '<option value="">Todas</option>' + options;
-        modalSelect.innerHTML = '<option value="">Sin categoría</option>' + options;
+        filterSelect.innerHTML = '<option value="">Todas</option>' +
+            categories.map(c => `<option value="${c.id}">${escapeHtml(c.nombre)}</option>`).join('');
     } catch (err) {
         showError('No se pudieron cargar las categorías: ' + err.message);
     }
 }
 
-// ===== Load expenses with filters and pagination =====
+// ===== Load expenses =====
 async function loadExpenses() {
     const tbody = document.getElementById('expensesTable');
     tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">
@@ -68,7 +54,6 @@ async function loadExpenses() {
 
         document.getElementById('prevBtn').disabled = currentPage === 0;
         document.getElementById('nextBtn').disabled = currentPage >= totalPages - 1;
-
     } catch (err) {
         tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-danger">
             Error al cargar gastos: ${escapeHtml(err.message)}
@@ -179,94 +164,9 @@ function renderTable(items) {
     `).join('');
 }
 
-// ===== Create / Edit =====
-function openNewExpenseModal() {
-    document.getElementById('expenseForm').reset();
-    document.getElementById('expenseId').value = '';
-    document.getElementById('expenseFecha').value = todayLocalISO();
-    document.getElementById('expenseModalTitle').textContent = 'Nuevo gasto';
-    clearExpenseLocation();
-    expenseModal.show();
-}
-
-async function editExpense(id) {
-    try {
-        const e = await api.get('/expenses/' + id);
-        document.getElementById('expenseId').value = e.id;
-        document.getElementById('expenseMonto').value = e.monto;
-        document.getElementById('expenseFecha').value = e.fecha;
-        document.getElementById('expenseDescripcion').value = e.descripcion || '';
-        document.getElementById('expenseCategory').value = e.categoryId || '';
-        document.getElementById('expenseModalTitle').textContent = 'Editar gasto';
-
-        if (e.locationId) {
-            setExpenseLocation(e.locationId, e.locationDireccion || 'Ubicación seleccionada');
-        } else {
-            clearExpenseLocation();
-        }
-
-        expenseModal.show();
-    } catch (err) {
-        showError(err.message);
-    }
-}
-
-function setExpenseLocation(id, direccion) {
-    document.getElementById('expenseLocationId').value = id;
-    document.getElementById('expenseLocationText').textContent = direccion;
-    document.getElementById('expenseLocationBox').classList.remove('d-none');
-}
-
-function clearExpenseLocation() {
-    document.getElementById('expenseLocationId').value = '';
-    document.getElementById('expenseLocationBox').classList.add('d-none');
-}
-
-async function handleSaveExpense(event) {
-    event.preventDefault();
-    if (submitting) return;
-
-    const id = document.getElementById('expenseId').value;
-    const categoryId = document.getElementById('expenseCategory').value;
-    const locationId = document.getElementById('expenseLocationId').value;
-    const monto = parseFloat(document.getElementById('expenseMonto').value);
-
-    if (!Number.isFinite(monto) || monto <= 0) {
-        showError('El monto debe ser mayor a 0');
-        return;
-    }
-
-    const body = {
-        monto,
-        fecha: document.getElementById('expenseFecha').value,
-        descripcion: document.getElementById('expenseDescripcion').value.trim() || null,
-        categoryId: categoryId ? parseInt(categoryId) : null,
-        locationId: locationId ? parseInt(locationId) : null
-    };
-
-    const btn = document.getElementById('expenseSaveBtn');
-    const original = btn.innerHTML;
-    submitting = true;
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Guardando...';
-
-    try {
-        if (id) {
-            await api.put('/expenses/' + id, body);
-            showSuccess('Gasto actualizado');
-        } else {
-            await api.post('/expenses', body);
-            showSuccess('Gasto creado');
-        }
-        expenseModal.hide();
-        await loadExpenses();
-    } catch (err) {
-        showError(err.message);
-    } finally {
-        submitting = false;
-        btn.disabled = false;
-        btn.innerHTML = original;
-    }
+// ===== Unified create/edit form =====
+function editExpense(id) {
+    window.location.href = '/new-expense.html?id=' + id;
 }
 
 async function deleteExpense(id) {
@@ -284,7 +184,7 @@ async function deleteExpense(id) {
     }
 }
 
-// ===== Pagination =====
+// ===== Pagination and filters =====
 function prevPage() {
     if (currentPage > 0) {
         currentPage--;
@@ -299,7 +199,6 @@ function nextPage() {
     }
 }
 
-// ===== Filters =====
 function applyFilters() {
     currentPage = 0;
     loadExpenses();
@@ -319,7 +218,6 @@ async function openReceipt(id) {
     try {
         const expense = await api.get('/expenses/' + id);
         receiptExpenseId = id;
-        receiptFileName = expense.receiptNombre || null;
 
         document.getElementById('receiptExpenseId').value = id;
         document.getElementById('receiptForm').reset();

@@ -1,7 +1,6 @@
 // Navegación compartida: top navbar en escritorio y bottom nav en móvil.
 
 const PRIMARY_NAV = [
-    { key: 'inicio', href: '/index.html', icon: 'bi-house', label: 'Inicio' },
     { key: 'gastos', href: '/expenses.html', icon: 'bi-list-ul', label: 'Gastos' },
     { key: 'mapa', href: '/map.html', icon: 'bi-geo-alt', label: 'Mapa' }
 ];
@@ -22,7 +21,8 @@ function renderAppNav() {
 
     document.body.classList.add('app-authenticated');
 
-    const active = host.dataset.active || '';
+    const rawActive = host.dataset.active || '';
+    const active = rawActive === 'nuevo' ? 'gastos' : rawActive;
     const name = (typeof getNombre === 'function' && getNombre())
         || (typeof getEmail === 'function' && getEmail())
         || 'Mi cuenta';
@@ -89,11 +89,11 @@ function renderAppNav() {
         </header>
 
         <nav class="mobile-bottom-nav d-xl-none" aria-label="Navegación principal">
-            ${PRIMARY_NAV.slice(0, 2).map(item => mobileNavLink(item, active)).join('')}
+            ${mobileNavLink(PRIMARY_NAV[0], active)}
             <a href="/new-expense.html" class="mobile-nav-fab" aria-label="Nuevo gasto">
                 <i class="bi bi-plus-lg"></i>
             </a>
-            ${mobileNavLink(PRIMARY_NAV[2], active)}
+            ${mobileNavLink(PRIMARY_NAV[1], active)}
             <button type="button" class="mobile-nav-btn ${secondaryActive ? 'active' : ''}"
                     data-bs-toggle="offcanvas" data-bs-target="#mobileMenu" aria-controls="mobileMenu">
                 <i class="bi bi-grid"></i>

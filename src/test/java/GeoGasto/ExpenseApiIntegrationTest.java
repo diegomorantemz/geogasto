@@ -176,6 +176,37 @@ class ExpenseApiIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void editarGastoPuedeCambiarLaUbicacion() {
+        String token = registrar("editar-ubicacion-" + UUID.randomUUID() + "@test.com", "PEN");
+        Map<String, Object> creado = crearGastoConUbicacion(token, -12.05, -77.04);
+
+        long gastoId = ((Number) creado.get("id")).longValue();
+        long ubicacionAnterior = ((Number) creado.get("locationId")).longValue();
+
+        Map<String, Object> body = new HashMap<>();
+        body.put("monto", 30.00);
+        body.put("fecha", LocalDate.now(ZONA).minusDays(1).toString());
+        body.put("descripcion", "Gasto reubicado");
+        body.put("locationDireccion", "Nueva ubicación");
+        body.put("locationLatitud", -12.20);
+        body.put("locationLongitud", -77.10);
+        body.put("locationCiudad", "Lima");
+        body.put("locationPais", "Peru");
+        body.put("locationPlaceId", "nueva-" + UUID.randomUUID());
+
+        ResponseEntity<Map> actualizado = restTemplate.exchange(
+                "/api/expenses/" + gastoId + "/with-location", HttpMethod.PUT,
+                conToken(token, body), Map.class);
+
+        assertThat(actualizado.getStatusCode()).isEqualTo(HttpStatus.OK);
+        long ubicacionNueva = ((Number) actualizado.getBody().get("locationId")).longValue();
+        assertThat(ubicacionNueva).isNotEqualTo(ubicacionAnterior);
+        assertThat(actualizado.getBody().get("locationDireccion")).isEqualTo("Nueva ubicación");
+        assertThat(get("/api/locations/" + ubicacionAnterior, token).getStatusCode())
+                .isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
     void reutilizaUbicacionesDelMismoPlaceId() {
         String token = registrar("place-" + UUID.randomUUID() + "@test.com", "PEN");
         String placeId = "place-" + UUID.randomUUID();
