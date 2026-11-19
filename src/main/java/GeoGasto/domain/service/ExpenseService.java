@@ -5,6 +5,7 @@ import GeoGasto.domain.dto.expense.ExpenseRequest;
 import GeoGasto.domain.dto.expense.ExpenseResponse;
 import GeoGasto.domain.dto.expense.ExpenseWithLocationRequest;
 import GeoGasto.domain.exception.ResourceNotFoundException;
+import GeoGasto.domain.util.UserTime;
 import GeoGasto.persistence.entity.Category;
 import GeoGasto.persistence.entity.Expense;
 import GeoGasto.persistence.entity.Location;
@@ -27,9 +28,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
-import java.time.DateTimeException;
 import java.time.LocalDate;
-import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -123,7 +122,7 @@ public class ExpenseService {
     @Transactional
     public ExpenseResponse crear(String email, ExpenseRequest request) {
         User user = obtenerUsuario(email);
-        validarFechaNoFutura(user, request.getFecha());
+        UserTime.requireNotFuture(user, request.getFecha());
         Expense expense = new Expense();
         expense.setUser(user);
         aplicarDatos(expense, request, user);
@@ -133,7 +132,7 @@ public class ExpenseService {
     @Transactional
     public ExpenseResponse crearConUbicacion(String email, ExpenseWithLocationRequest request) {
         User user = obtenerUsuario(email);
-        validarFechaNoFutura(user, request.getFecha());
+        UserTime.requireNotFuture(user, request.getFecha());
         Location location = obtenerOCrearUbicacion(user, request);
 
         Expense expense = new Expense();
@@ -150,7 +149,7 @@ public class ExpenseService {
     @Transactional
     public ExpenseResponse actualizar(String email, Long id, ExpenseRequest request) {
         User user = obtenerUsuario(email);
-        validarFechaNoFutura(user, request.getFecha());
+        UserTime.requireNotFuture(user, request.getFecha());
         Expense expense = obtenerPropio(user, id);
         Location ubicacionAnterior = expense.getLocation();
 
@@ -164,7 +163,7 @@ public class ExpenseService {
     @Transactional
     public ExpenseResponse actualizarConUbicacion(String email, Long id, ExpenseWithLocationRequest request) {
         User user = obtenerUsuario(email);
-        validarFechaNoFutura(user, request.getFecha());
+        UserTime.requireNotFuture(user, request.getFecha());
         Expense expense = obtenerPropio(user, id);
         Location ubicacionAnterior = expense.getLocation();
 
@@ -302,23 +301,6 @@ public class ExpenseService {
             return "\"" + escaped + "\"";
         }
         return escaped;
-    }
-
-    private static void validarFechaNoFutura(User user, LocalDate fecha) {
-        if (fecha == null) {
-            return;
-        }
-        if (fecha.isAfter(LocalDate.now(zonaDe(user)))) {
-            throw new IllegalArgumentException("La fecha no puede ser futura");
-        }
-    }
-
-    private static ZoneId zonaDe(User user) {
-        try {
-            return ZoneId.of(user.getTimezone());
-        } catch (DateTimeException | NullPointerException e) {
-            return ZoneId.of("America/Lima");
-        }
     }
 
     private User obtenerUsuario(String email) {

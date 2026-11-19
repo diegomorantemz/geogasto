@@ -297,33 +297,3 @@ async function generateNow() {
         btn.innerHTML = original;
     }
 }
-
-function formatDate(iso) {
-    if (!iso) return '—';
-    const d = new Date(iso + 'T00:00:00');
-    return d.toLocaleDateString('es-PE', { year: 'numeric', month: 'short', day: 'numeric' });
-}
-
-function escapeHtml(str) {
-    if (str == null) return '';
-    return String(str)
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#39;');
-}
-
-function showSuccess(msg) {
-    const box = document.getElementById('successBox');
-    box.textContent = msg;
-    box.classList.remove('d-none');
-    setTimeout(() => box.classList.add('d-none'), 4000);
-}
-
-function showError(msg) {
-    const box = document.getElementById('errorBox');
-    box.textContent = msg;
-    box.classList.remove('d-none');
-    setTimeout(() => box.classList.add('d-none'), 5000);
-}

@@ -312,27 +312,3 @@ function getMonth() {
 function localMonthISO() {
     return todayProfileISO().slice(0, 7);
 }
-
-function escapeHtml(str) {
-    if (str == null) return '';
-    return String(str)
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#39;');
-}
-
-function showSuccess(msg) {
-    const box = document.getElementById('successBox');
-    box.textContent = msg;
-    box.classList.remove('d-none');
-    setTimeout(() => box.classList.add('d-none'), 3000);
-}
-
-function showError(msg) {
-    const box = document.getElementById('errorBox');
-    box.textContent = msg;
-    box.classList.remove('d-none');
-    setTimeout(() => box.classList.add('d-none'), 5000);
-}

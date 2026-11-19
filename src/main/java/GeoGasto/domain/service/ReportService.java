@@ -3,6 +3,7 @@ package GeoGasto.domain.service;
 import GeoGasto.domain.dto.budget.BudgetResponse;
 import GeoGasto.domain.dto.budget.BudgetSummaryResponse;
 import GeoGasto.domain.exception.ResourceNotFoundException;
+import GeoGasto.domain.util.UserTime;
 import GeoGasto.persistence.entity.Expense;
 import GeoGasto.persistence.entity.Income;
 import GeoGasto.persistence.entity.User;
@@ -35,10 +36,8 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
-import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.YearMonth;
-import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -168,7 +167,7 @@ public class ReportService {
         email.setSpacingAfter(9);
         right.addElement(email);
         Paragraph generated = new Paragraph(
-                "Generado el " + LocalDate.now(zonaDe(user))
+                "Generado el " + UserTime.today(user)
                         .format(DateTimeFormatter.ofPattern("d 'de' MMMM 'de' yyyy", LOCALE_ES)), META_FONT);
         generated.setAlignment(Element.ALIGN_RIGHT);
         right.addElement(generated);
@@ -666,20 +665,12 @@ public class ReportService {
 
     private static YearMonth parseMes(String mes, User user) {
         if (mes == null || mes.isBlank()) {
-            return YearMonth.now(zonaDe(user));
+            return YearMonth.now(UserTime.zoneOf(user));
         }
         try {
             return YearMonth.parse(mes);
         } catch (Exception e) {
             throw new IllegalArgumentException("El mes debe tener formato YYYY-MM");
-        }
-    }
-
-    private static ZoneId zonaDe(User user) {
-        try {
-            return ZoneId.of(user.getTimezone());
-        } catch (DateTimeException | NullPointerException e) {
-            return ZoneId.of("America/Lima");
         }
     }
 

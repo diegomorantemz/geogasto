@@ -113,27 +113,3 @@ async function deletePlace(id) {
         showError('No se pudo eliminar: ' + err.message);
     }
 }
-
-function escapeHtml(str) {
-    if (str == null) return '';
-    return String(str)
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#39;');
-}
-
-function showSuccess(msg) {
-    const box = document.getElementById('successBox');
-    box.textContent = msg;
-    box.classList.remove('d-none');
-    setTimeout(() => box.classList.add('d-none'), 3000);
-}
-
-function showError(msg) {
-    const box = document.getElementById('errorBox');
-    box.textContent = msg;
-    box.classList.remove('d-none');
-    setTimeout(() => box.classList.add('d-none'), 5000);
-}

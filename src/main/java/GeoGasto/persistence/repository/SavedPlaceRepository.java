@@ -11,8 +11,6 @@ public interface SavedPlaceRepository extends JpaRepository<SavedPlace, Long> {
 
     List<SavedPlace> findByUserIdOrderByUsageCountDesc(Long userId);
 
-    boolean existsByUserIdAndAlias(Long userId, String alias);
-
     boolean existsByUserIdAndAliasIgnoreCase(Long userId, String alias);
 
     boolean existsByUserIdAndAliasIgnoreCaseAndIdNot(Long userId, String alias, Long id);

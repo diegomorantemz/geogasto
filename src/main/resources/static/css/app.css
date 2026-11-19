@@ -286,11 +286,6 @@ h1, h2, h3, h4, h5, h6 {
     border-bottom: 1px solid var(--gg-border);
 }
 
-.table-light {
-    --bs-table-bg: var(--gg-surface-2);
-    --bs-table-color: var(--gg-muted);
-}
-
 .table-hover > tbody > tr:hover > * {
     background-color: var(--gg-surface-2);
     color: var(--gg-text);
@@ -565,23 +560,6 @@ h1, h2, h3, h4, h5, h6 {
 .list-group-item.active .text-muted {
     color: var(--gg-surface) !important;
     opacity: .75;
-}
-
-/* ===== Dark-mode safety for hardcoded utility classes ===== */
-[data-theme="dark"] .bg-white {
-    background-color: var(--gg-surface) !important;
-}
-
-[data-theme="dark"] .bg-light {
-    background-color: var(--gg-surface-2) !important;
-}
-
-[data-theme="dark"] .text-dark {
-    color: var(--gg-text) !important;
-}
-
-[data-theme="dark"] .card-footer.bg-white {
-    background-color: transparent !important;
 }
 
 /* ===== Focus ===== */
@@ -1307,15 +1285,6 @@ html[data-theme="dark"] .theme-icon-moon {
 .empty-icon {
     font-size: 2.5rem;
     color: var(--gg-border-strong);
-}
-
-.hover-lift {
-    transition: transform .15s ease, box-shadow .15s ease;
-}
-
-.hover-lift:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--gg-shadow-md);
 }
 
 .chip-list .btn {

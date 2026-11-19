@@ -109,17 +109,3 @@ async function handleChangePassword(event) {
         btn.innerHTML = original;
     }
 }
-
-function showSuccess(msg) {
-    const box = document.getElementById('successBox');
-    box.textContent = msg;
-    box.classList.remove('d-none');
-    setTimeout(() => box.classList.add('d-none'), 3000);
-}
-
-function showError(msg) {
-    const box = document.getElementById('errorBox');
-    box.textContent = msg;
-    box.classList.remove('d-none');
-    setTimeout(() => box.classList.add('d-none'), 6000);
-}
