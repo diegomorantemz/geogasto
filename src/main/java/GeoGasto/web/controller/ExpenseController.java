@@ -1,12 +1,14 @@
 package GeoGasto.web.controller;
 
+import GeoGasto.domain.dto.expense.ExpenseMapResponse;
 import GeoGasto.domain.dto.expense.ExpenseRequest;
 import GeoGasto.domain.dto.expense.ExpenseResponse;
 import GeoGasto.domain.dto.expense.ExpenseWithLocationRequest;
 import GeoGasto.domain.service.ExpenseService;
+import GeoGasto.web.dto.PageResponse;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -16,6 +18,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -25,6 +28,7 @@ import java.util.Set;
 @RestController
 @RequestMapping("/api/expenses")
 @RequiredArgsConstructor
+@Validated
 public class ExpenseController {
 
     private static final Set<String> CAMPOS_ORDENABLES = Set.of("fecha", "monto", "descripcion", "createdAt");
@@ -33,14 +37,28 @@ public class ExpenseController {
     private final ExpenseService expenseService;
 
     @GetMapping
-    public ResponseEntity<Page<ExpenseResponse>> listar(
+    public ResponseEntity<PageResponse<ExpenseResponse>> listar(
             Authentication auth,
             Pageable pageable,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hasta,
-            @RequestParam(required = false) Long categoryId
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) @Size(max = 255) String q
     ) {
-        return ResponseEntity.ok(expenseService.listar(auth.getName(), sanitizar(pageable), desde, hasta, categoryId));
+        return ResponseEntity.ok(PageResponse.from(expenseService.listar(
+                auth.getName(), sanitizar(pageable), desde, hasta, categoryId, q)));
+    }
+
+    @GetMapping("/map")
+    public ResponseEntity<List<ExpenseMapResponse>> listarParaMapa(
+            Authentication auth,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hasta,
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) @Size(max = 255) String q
+    ) {
+        return ResponseEntity.ok(expenseService.listarParaMapa(
+                auth.getName(), desde, hasta, categoryId, q));
     }
 
     @GetMapping("/export")
@@ -48,9 +66,10 @@ public class ExpenseController {
             Authentication auth,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate desde,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate hasta,
-            @RequestParam(required = false) Long categoryId
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) @Size(max = 255) String q
     ) {
-        byte[] csv = expenseService.exportarCsv(auth.getName(), desde, hasta, categoryId);
+        byte[] csv = expenseService.exportarCsv(auth.getName(), desde, hasta, categoryId, q);
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"gastos.csv\"")
                 .contentType(MediaType.parseMediaType("text/csv; charset=UTF-8"))
@@ -87,6 +106,15 @@ public class ExpenseController {
             @Valid @RequestBody ExpenseRequest request
     ) {
         return ResponseEntity.ok(expenseService.actualizar(auth.getName(), id, request));
+    }
+
+    @PutMapping("/{id}/with-location")
+    public ResponseEntity<ExpenseResponse> actualizarConUbicacion(
+            Authentication auth,
+            @PathVariable Long id,
+            @Valid @RequestBody ExpenseWithLocationRequest request
+    ) {
+        return ResponseEntity.ok(expenseService.actualizarConUbicacion(auth.getName(), id, request));
     }
 
     @DeleteMapping("/{id}")

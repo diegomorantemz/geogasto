@@ -14,8 +14,19 @@ import java.util.List;
 @AllArgsConstructor
 public class StatsResponse {
     private BigDecimal totalMes;
+    private BigDecimal totalMesAnterior;
+    private BigDecimal variacionPorcentual;
+    private BigDecimal promedioDiario;
+    private BigDecimal totalIngresosMes;
+    private BigDecimal totalIngresosMesAnterior;
+    private BigDecimal balanceMes;
+    private BigDecimal tasaAhorro;
+    private String categoriaTopNombre;
+    private String categoriaTopColor;
+    private BigDecimal categoriaTopTotal;
     private Long cantidadGastos;
     private Long cantidadCategorias;
+    private Long cantidadLugares;
     private List<CategoryStat> gastosPorCategoria;
     private List<MonthStat> gastosPorMes;
 
@@ -37,6 +48,7 @@ public class StatsResponse {
     public static class MonthStat {
         private String mes;        // "2026-10"
         private String mesLabel;   // "Oct 2026"
-        private BigDecimal total;
+        private BigDecimal total;  // gastos
+        private BigDecimal ingresos;
     }
 }

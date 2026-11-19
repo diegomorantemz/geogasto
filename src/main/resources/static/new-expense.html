@@ -3,71 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Registra un gasto y asígnalo a una ubicación.">
     <title>Nuevo gasto - GeoGasto</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <!-- MapLibre CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
     <link rel="stylesheet" href="/css/app.css">
 </head>
-<body class="bg-light">
+<body>
 
-<!-- Navbar -->
-<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-    <div class="container">
-        <a class="navbar-brand" href="/index.html">
-            <i class="bi bi-wallet2"></i> GeoGasto
-        </a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarMain">
-            <ul class="navbar-nav me-auto">
-                <li class="nav-item">
-                    <a class="nav-link" href="/index.html">
-                        <i class="bi bi-house"></i> Inicio
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/expenses.html">
-                        <i class="bi bi-list-ul"></i> Gastos
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/categories.html">
-                        <i class="bi bi-tags"></i> Categorías
-                    </a>
-                </li>
-            </ul>
-            <div class="d-flex align-items-center">
-                <span class="text-white me-3">
-                    <i class="bi bi-person-circle"></i>
-                    <span id="userEmail"></span>
-                </span>
-                <button class="btn btn-outline-light btn-sm" onclick="logout()">
-                    <i class="bi bi-box-arrow-right"></i> Salir
-                </button>
-            </div>
-        </div>
-    </div>
-</nav>
+<div id="appNav" data-active="nuevo"></div>
 
-<!-- Content -->
-<div class="container mt-4">
+<main class="container py-4">
 
     <div class="mb-4">
-        <h2 class="mb-1">Nuevo gasto</h2>
-        <p class="text-muted mb-0">Registra un gasto y asigna su ubicación</p>
+        <h2 class="page-title mb-1" id="pageTitle">Nuevo gasto</h2>
+        <p class="text-muted mb-0" id="pageSubtitle">Registra el gasto y asigna su ubicación en el mapa.</p>
     </div>
 
-    <div id="successBox" class="alert alert-success py-2 d-none"></div>
-    <div id="errorBox" class="alert alert-danger py-2 d-none"></div>
+    <div id="successBox" class="alert alert-success py-2 d-none" role="status"></div>
+    <div id="errorBox" class="alert alert-danger py-2 d-none" role="alert"></div>
 
     <div class="row g-4">
 
-        <!-- Columna izquierda: formulario -->
-        <div class="col-lg-5">
-            <div class="card shadow-sm border-0">
+        <div class="col-lg-5 order-2 order-lg-1">
+            <div class="card">
                 <div class="card-body">
                     <form id="newExpenseForm" onsubmit="handleSubmit(event)">
 
@@ -100,14 +61,11 @@
 
                         <hr>
 
-                        <h6 class="text-muted mb-3">
-                            <i class="bi bi-geo-alt"></i> Ubicación
-                        </h6>
+                        <h6 class="text-muted mb-3"><i class="bi bi-geo-alt"></i> Ubicación</h6>
 
-                        <!-- Lugares guardados -->
                         <div class="mb-3">
                             <label class="form-label">Lugares guardados</label>
-                            <div id="savedPlacesChips" class="d-flex flex-wrap gap-2">
+                            <div id="savedPlacesChips" class="d-flex flex-wrap gap-2 chip-list">
                                 <span class="text-muted small">Cargando...</span>
                             </div>
                         </div>
@@ -118,8 +76,7 @@
                                 <input type="text" id="searchPlace" class="form-control"
                                        placeholder="Ej: Plaza Vea Miraflores, Starbucks..."
                                        autocomplete="off">
-                                <div id="searchResults" class="list-group position-absolute w-100 shadow-sm d-none"
-                                     style="z-index: 1000; max-height: 250px; overflow-y: auto;"></div>
+                                <div id="searchResults" class="list-group position-absolute w-100 shadow-sm d-none"></div>
                             </div>
                         </div>
 
@@ -152,7 +109,7 @@
                             <a href="/expenses.html" class="btn btn-secondary flex-grow-1">
                                 <i class="bi bi-x-circle"></i> Cancelar
                             </a>
-                            <button type="submit" class="btn btn-primary flex-grow-1">
+                            <button type="submit" class="btn btn-primary flex-grow-1" id="saveExpenseBtn">
                                 <i class="bi bi-check2-circle"></i> Guardar
                             </button>
                         </div>
@@ -162,30 +119,32 @@
             </div>
         </div>
 
-        <!-- Columna derecha: mapa -->
-        <div class="col-lg-7">
-            <div class="card shadow-sm border-0">
+        <div class="col-lg-7 order-1 order-lg-2">
+            <div class="card">
                 <div class="card-body p-0">
                     <div class="p-3 border-bottom">
-                        <h6 class="mb-0">
-                            <i class="bi bi-map"></i> Selecciona la ubicación en el mapa
-                        </h6>
-                        <small class="text-muted">Haz clic en el mapa para marcar un punto</small>
+                        <h6 class="mb-0"><i class="bi bi-geo-alt"></i> Selecciona la ubicación</h6>
+                        <small class="text-muted">Haz clic en el mapa o arrastra el marcador.</small>
                     </div>
-                    <div id="map" style="height: 520px; border-radius: 0 0 .5rem .5rem;"></div>
+                    <div class="position-relative">
+                        <div id="map" class="map-shell"></div>
+                        <div id="mapLoading"
+                             class="position-absolute top-50 start-50 translate-middle bg-white rounded-3 shadow-sm px-3 py-2 map-loading">
+                            <span class="spinner-border spinner-border-sm me-2"></span>Cargando mapa...
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
     </div>
-</div>
+</main>
 
-<!-- MapLibre JS -->
-<script src="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="/js/api.js"></script>
 <script src="/js/auth.js"></script>
+<script src="/js/layout.js"></script>
 <script src="/js/new-expense.js"></script>
-
 </body>
 </html>

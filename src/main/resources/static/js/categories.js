@@ -2,14 +2,10 @@
 
 let categoryModal;
 let categories = [];
+let submitting = false;
 
 document.addEventListener('DOMContentLoaded', async () => {
     if (!requireLogin()) return;
-
-    const email = getEmail();
-    if (email) {
-        document.getElementById('userEmail').textContent = email;
-    }
 
     categoryModal = new bootstrap.Modal(document.getElementById('categoryModal'));
 
@@ -46,18 +42,18 @@ function renderTable(items) {
 
     tbody.innerHTML = items.map(c => `
         <tr>
-            <td>
+            <td data-label="Color">
                 <span class="d-inline-block rounded-circle border"
                       style="width: 24px; height: 24px; background-color: ${escapeHtml(c.color || '#dee2e6')};"></span>
             </td>
-            <td class="fw-semibold">${escapeHtml(c.nombre)}</td>
-            <td>
+            <td data-label="Nombre" class="fw-semibold">${escapeHtml(c.nombre)}</td>
+            <td data-label="Icono">
                 ${c.icono
         ? `<i class="bi ${escapeHtml(c.icono)} fs-5"></i>`
         : '<span class="text-muted">-</span>'}
             </td>
-            <td class="text-muted small">${formatDate(c.createdAt)}</td>
-            <td class="text-end">
+            <td data-label="Creada" class="text-muted small">${formatDate(c.createdAt)}</td>
+            <td data-label="Acciones" class="text-end">
                 <button class="btn btn-sm btn-outline-primary me-1" onclick="editCategory(${c.id})">
                     <i class="bi bi-pencil"></i>
                 </button>
@@ -72,7 +68,7 @@ function renderTable(items) {
 function openNewCategoryModal() {
     document.getElementById('categoryForm').reset();
     document.getElementById('categoryId').value = '';
-    document.getElementById('categoryColor').value = '#0d6efd';
+    document.getElementById('categoryColor').value = '#2563eb';
     document.getElementById('categoryModalTitle').textContent = 'Nueva categoría';
     categoryModal.show();
 }
@@ -83,7 +79,7 @@ function editCategory(id) {
 
     document.getElementById('categoryId').value = c.id;
     document.getElementById('categoryNombre').value = c.nombre || '';
-    document.getElementById('categoryColor').value = c.color || '#0d6efd';
+    document.getElementById('categoryColor').value = c.color || '#2563eb';
     document.getElementById('categoryIcono').value = c.icono || '';
     document.getElementById('categoryModalTitle').textContent = 'Editar categoría';
     categoryModal.show();
@@ -91,6 +87,7 @@ function editCategory(id) {
 
 async function handleSaveCategory(event) {
     event.preventDefault();
+    if (submitting) return;
 
     const id = document.getElementById('categoryId').value;
     const body = {
@@ -98,6 +95,12 @@ async function handleSaveCategory(event) {
         color: document.getElementById('categoryColor').value,
         icono: document.getElementById('categoryIcono').value.trim() || null
     };
+
+    const btn = document.getElementById('categorySaveBtn');
+    const original = btn.innerHTML;
+    submitting = true;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Guardando...';
 
     try {
         if (id) {
@@ -111,6 +114,10 @@ async function handleSaveCategory(event) {
         await loadCategories();
     } catch (err) {
         showError(err.message);
+    } finally {
+        submitting = false;
+        btn.disabled = false;
+        btn.innerHTML = original;
     }
 }
 

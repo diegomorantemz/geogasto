@@ -41,6 +41,9 @@ public class Expense {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @OneToOne(mappedBy = "expense", fetch = FetchType.LAZY)
+    private Receipt receipt;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

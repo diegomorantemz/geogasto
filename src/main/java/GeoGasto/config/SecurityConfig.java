@@ -16,6 +16,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
@@ -42,11 +43,18 @@ public class SecurityConfig {
                                 "/css/**",
                                 "/js/**",
                                 "/images/**",
+                                "/icons/**",
                                 "/favicon.ico",
+                                "/favicon.svg",
+                                "/manifest.webmanifest",
+                                "/sw.js",
+                                "/ejemplo-gastos.csv",
                                 "/error",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
-                                "/v3/api-docs/**"
+                                "/v3/api-docs/**",
+                                "/actuator/health",
+                                "/actuator/info"
                         ).permitAll()
 
                         // ===== API REST → JWT =====
@@ -66,6 +74,21 @@ public class SecurityConfig {
                         .accessDeniedHandler((request, response, accessDeniedException) ->
                                 writeError(response, HttpServletResponse.SC_FORBIDDEN,
                                         "Acceso denegado"))
+                )
+                .headers(headers -> headers
+                        .contentSecurityPolicy(csp -> csp.policyDirectives(
+                                "default-src 'self'; " +
+                                        "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; " +
+                                        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; " +
+                                        "img-src 'self' data: blob: https://cdn.jsdelivr.net https://tile.openstreetmap.org https://*.tile.openstreetmap.org; " +
+                                        "font-src 'self' data: https://cdn.jsdelivr.net; " +
+                                        "connect-src 'self' https://tile.openstreetmap.org https://*.tile.openstreetmap.org; " +
+                                        "worker-src 'self' blob:; child-src 'self' blob:; object-src 'none'; " +
+                                        "frame-ancestors 'none'; base-uri 'self'"
+                        ))
+                        .frameOptions(frame -> frame.deny())
+                        .referrerPolicy(ref -> ref.policy(
+                                ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
                 )
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);

@@ -1,23 +1,57 @@
+// PWA: manifest, theme color y service worker.
+(function initPwa() {
+    if (!document.querySelector('link[rel="manifest"]')) {
+        const link = document.createElement('link');
+        link.rel = 'manifest';
+        link.href = '/manifest.webmanifest';
+        document.head.appendChild(link);
+    }
+    if (!document.querySelector('meta[name="theme-color"]')) {
+        const meta = document.createElement('meta');
+        meta.name = 'theme-color';
+        meta.content = '#1e3a8a';
+        document.head.appendChild(meta);
+    }
+    if ('serviceWorker' in navigator &&
+        (location.protocol === 'https:' || ['localhost', '127.0.0.1'].includes(location.hostname))) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js').catch(() => {
+                // La app sigue funcionando sin service worker.
+            });
+        });
+    }
+})();
+
 // Authentication helpers
 
 const TOKEN_KEY = 'geogasto_token';
 const EMAIL_KEY = 'geogasto_email';
+const NAME_KEY = 'geogasto_nombre';
 const CURRENCY_KEY = 'geogasto_moneda';
+const TIMEZONE_KEY = 'geogasto_timezone';
 
-function saveSession(token, email, moneda) {
+function saveSession(token, email, moneda, nombre, timezone) {
     localStorage.setItem(TOKEN_KEY, token);
-    localStorage.setItem(EMAIL_KEY, email);
-    if (moneda) {
-        localStorage.setItem(CURRENCY_KEY, moneda);
-    }
+    if (email) localStorage.setItem(EMAIL_KEY, email);
+    if (nombre) localStorage.setItem(NAME_KEY, nombre);
+    if (moneda) localStorage.setItem(CURRENCY_KEY, moneda);
+    if (timezone) localStorage.setItem(TIMEZONE_KEY, timezone);
 }
 
 function getEmail() {
     return localStorage.getItem(EMAIL_KEY);
 }
 
+function getNombre() {
+    return localStorage.getItem(NAME_KEY) || getEmail();
+}
+
 function getMoneda() {
     return localStorage.getItem(CURRENCY_KEY) || 'USD';
+}
+
+function getTimezone() {
+    return localStorage.getItem(TIMEZONE_KEY) || 'America/Lima';
 }
 
 function currencySymbol(moneda = getMoneda()) {
@@ -34,16 +68,25 @@ function currencySymbol(moneda = getMoneda()) {
     return symbols[moneda] || moneda;
 }
 
-// Completa la moneda para sesiones creadas antes de existir este dato.
-async function ensureProfile() {
-    if (localStorage.getItem(CURRENCY_KEY)) return;
+// Completa los datos de perfil para sesiones creadas antes de existir estos campos.
+async function ensureProfile(force = false) {
+    if (!localStorage.getItem(TOKEN_KEY)) return;
+
+    if (!force
+        && localStorage.getItem(CURRENCY_KEY)
+        && localStorage.getItem(NAME_KEY)
+        && localStorage.getItem(TIMEZONE_KEY)) {
+        return;
+    }
 
     try {
         const me = await api.get('/auth/me');
         if (me.email) localStorage.setItem(EMAIL_KEY, me.email);
+        if (me.nombre) localStorage.setItem(NAME_KEY, me.nombre);
         if (me.moneda) localStorage.setItem(CURRENCY_KEY, me.moneda);
+        if (me.timezone) localStorage.setItem(TIMEZONE_KEY, me.timezone);
     } catch (e) {
-        // Si falla, se mantiene la moneda por defecto.
+        // Si falla, se mantienen los valores por defecto.
     }
 }
 
@@ -54,7 +97,9 @@ function isLoggedIn() {
 function logout() {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(EMAIL_KEY);
+    localStorage.removeItem(NAME_KEY);
     localStorage.removeItem(CURRENCY_KEY);
+    localStorage.removeItem(TIMEZONE_KEY);
     window.location.href = '/login.html';
 }
 
@@ -70,7 +115,7 @@ function requireLogin() {
 async function handleLogin(event) {
     event.preventDefault();
     const form = event.target;
-    const email = form.email.value;
+    const email = form.email.value.trim();
     const password = form.password.value;
     const errorBox = document.getElementById('errorBox');
 
@@ -78,10 +123,10 @@ async function handleLogin(event) {
 
     try {
         const data = await api.post('/auth/login', { email, password });
-        saveSession(data.token, email, data.moneda);
+        saveSession(data.token, data.email || email, data.moneda, data.nombre, data.timezone);
         window.location.href = '/index.html';
     } catch (err) {
-        errorBox.textContent = 'Email o contraseña incorrectos';
+        errorBox.textContent = err.message || 'Email o contraseña incorrectos';
         errorBox.classList.remove('d-none');
     }
 }
@@ -95,15 +140,18 @@ async function handleRegister(event) {
     errorBox.classList.add('d-none');
 
     const body = {
-        email: form.email.value,
+        email: form.email.value.trim(),
         password: form.password.value,
-        nombre: form.nombre.value
+        nombre: form.nombre.value.trim()
     };
 
+    if (form.moneda) body.moneda = form.moneda.value;
+    if (form.timezone) body.timezone = form.timezone.value;
+
     try {
-        await api.post('/auth/register', body);
-        // Registro exitoso: redirige a login
-        window.location.href = '/login.html?registered=true';
+        const data = await api.post('/auth/register', body);
+        saveSession(data.token, data.email || body.email, data.moneda, data.nombre, data.timezone);
+        window.location.href = '/index.html';
     } catch (err) {
         errorBox.textContent = err.message || 'Error al registrarse';
         errorBox.classList.remove('d-none');

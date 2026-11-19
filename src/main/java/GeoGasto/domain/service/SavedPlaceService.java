@@ -1,5 +1,6 @@
 package GeoGasto.domain.service;
 
+import GeoGasto.domain.dto.savedplace.SavedPlaceRequest;
 import GeoGasto.domain.dto.savedplace.SavedPlaceResponse;
 import GeoGasto.domain.exception.ResourceNotFoundException;
 import GeoGasto.persistence.entity.Location;
@@ -7,6 +8,7 @@ import GeoGasto.persistence.entity.SavedPlace;
 import GeoGasto.persistence.entity.User;
 import GeoGasto.persistence.repository.ExpenseRepository;
 import GeoGasto.persistence.repository.LocationRepository;
+import GeoGasto.persistence.repository.RecurringExpenseRepository;
 import GeoGasto.persistence.repository.SavedPlaceRepository;
 import GeoGasto.persistence.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +25,7 @@ public class SavedPlaceService {
     private final UserRepository userRepository;
     private final LocationRepository locationRepository;
     private final ExpenseRepository expenseRepository;
+    private final RecurringExpenseRepository recurringExpenseRepository;
 
     @Transactional(readOnly = true)
     public List<SavedPlaceResponse> listar(String email) {
@@ -32,14 +35,15 @@ public class SavedPlaceService {
     }
 
     @Transactional
-    public SavedPlaceResponse crear(String email, String alias, Long locationId) {
+    public SavedPlaceResponse crear(String email, SavedPlaceRequest request) {
         User user = obtenerUsuario(email);
+        String alias = request.getAlias().trim();
 
-        if (savedPlaceRepository.existsByUserIdAndAlias(user.getId(), alias)) {
+        if (savedPlaceRepository.existsByUserIdAndAliasIgnoreCase(user.getId(), alias)) {
             throw new IllegalArgumentException("Ya tienes un lugar guardado con ese alias");
         }
 
-        Location location = locationRepository.findByIdAndUserId(locationId, user.getId())
+        Location location = locationRepository.findByIdAndUserId(request.getLocationId(), user.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Ubicación no encontrada"));
 
         SavedPlace place = SavedPlace.builder()
@@ -53,15 +57,23 @@ public class SavedPlaceService {
     }
 
     @Transactional
-    public void registrarUso(String email, Long id) {
+    public SavedPlaceResponse actualizarAlias(String email, Long id, String alias) {
         User user = obtenerUsuario(email);
-        SavedPlace place = savedPlaceRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Lugar guardado no encontrado"));
+        SavedPlace place = obtenerPropio(user, id);
+        String nuevoAlias = alias.trim();
 
-        if (!place.getUser().getId().equals(user.getId())) {
-            throw new ResourceNotFoundException("Lugar guardado no encontrado");
+        if (savedPlaceRepository.existsByUserIdAndAliasIgnoreCaseAndIdNot(user.getId(), nuevoAlias, id)) {
+            throw new IllegalArgumentException("Ya tienes un lugar guardado con ese alias");
         }
 
+        place.setAlias(nuevoAlias);
+        return toResponse(savedPlaceRepository.save(place));
+    }
+
+    @Transactional
+    public void registrarUso(String email, Long id) {
+        User user = obtenerUsuario(email);
+        SavedPlace place = obtenerPropio(user, id);
         place.setUsageCount(place.getUsageCount() + 1);
         savedPlaceRepository.save(place);
     }
@@ -69,17 +81,22 @@ public class SavedPlaceService {
     @Transactional
     public void eliminar(String email, Long id) {
         User user = obtenerUsuario(email);
+        SavedPlace place = obtenerPropio(user, id);
+
+        Location ubicacion = place.getLocation();
+        savedPlaceRepository.delete(place);
+        savedPlaceRepository.flush();
+        eliminarUbicacionSiHuerfana(ubicacion);
+    }
+
+    private SavedPlace obtenerPropio(User user, Long id) {
         SavedPlace place = savedPlaceRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Lugar guardado no encontrado"));
 
         if (!place.getUser().getId().equals(user.getId())) {
             throw new ResourceNotFoundException("Lugar guardado no encontrado");
         }
-
-        Location ubicacion = place.getLocation();
-        savedPlaceRepository.delete(place);
-        savedPlaceRepository.flush();
-        eliminarUbicacionSiHuerfana(ubicacion);
+        return place;
     }
 
     private void eliminarUbicacionSiHuerfana(Location location) {
@@ -89,13 +106,14 @@ public class SavedPlaceService {
 
         boolean usadaPorGasto = expenseRepository.existsByLocationId(location.getId());
         boolean usadaPorLugar = savedPlaceRepository.existsByLocationId(location.getId());
-        if (!usadaPorGasto && !usadaPorLugar) {
+        boolean usadaPorRecurrente = recurringExpenseRepository.existsByLocationId(location.getId());
+        if (!usadaPorGasto && !usadaPorLugar && !usadaPorRecurrente) {
             locationRepository.delete(location);
         }
     }
 
     private User obtenerUsuario(String email) {
-        return userRepository.findByEmail(email)
+        return userRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
     }
 
