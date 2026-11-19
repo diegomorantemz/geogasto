@@ -59,6 +59,9 @@ async function request(url, options = {}) {
             || 'La operación no se pudo completar (HTTP ' + response.status + ')';
         const error = new Error(message);
         error.status = response.status;
+        if (data && data.errors && typeof data.errors === 'object') {
+            error.fields = data.errors;
+        }
         throw error;
     }
 

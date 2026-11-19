@@ -7,6 +7,7 @@ test('flujo principal: registro, presupuesto, notificación, ingreso y recurrenc
     await page.fill('#nombre', 'E2E GeoGasto');
     await page.fill('#email', email);
     await page.fill('#password', 'secreto123');
+    await page.fill('#confirmPassword', 'secreto123');
     await page.selectOption('#moneda', 'PEN');
     await page.selectOption('#timezone', 'America/Lima');
     await page.click('button[type="submit"]');

@@ -31,13 +31,13 @@ import java.util.Locale;
 public class AuthService {
 
     private static final List<DefaultCategory> DEFAULT_CATEGORIES = List.of(
-            new DefaultCategory("Comida", "bi-cart", "#ef4444"),
-            new DefaultCategory("Transporte", "bi-car-front", "#f59e0b"),
-            new DefaultCategory("Hogar", "bi-house", "#10b981"),
-            new DefaultCategory("Ocio", "bi-controller", "#8b5cf6"),
-            new DefaultCategory("Salud", "bi-heart-pulse", "#ec4899"),
-            new DefaultCategory("Educación", "bi-mortarboard", "#0ea5e9"),
-            new DefaultCategory("Otros", "bi-receipt", "#64748b")
+            new DefaultCategory("Comida", "bi-cart", "#8c6a5d"),
+            new DefaultCategory("Transporte", "bi-car-front", "#7d7f72"),
+            new DefaultCategory("Hogar", "bi-house", "#6f7f6a"),
+            new DefaultCategory("Ocio", "bi-controller", "#8a7a5c"),
+            new DefaultCategory("Salud", "bi-heart-pulse", "#8c6b6b"),
+            new DefaultCategory("Educación", "bi-mortarboard", "#5f7482"),
+            new DefaultCategory("Otros", "bi-receipt", "#8a8378")
     );
 
     private final UserRepository userRepository;

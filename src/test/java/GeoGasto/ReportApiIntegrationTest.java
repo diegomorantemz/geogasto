@@ -53,6 +53,21 @@ class ReportApiIntegrationTest extends AbstractIntegrationTest {
         assertThat(new String(response.getBody(), 0, 4)).isEqualTo("%PDF");
     }
 
+    @Test
+    void generaReportePdfDeUnMesSinMovimientos() {
+        String token = registrar("report-empty-" + UUID.randomUUID() + "@test.com");
+        String mes = YearMonth.from(LocalDate.now(ZONA)).minusMonths(1).toString();
+
+        ResponseEntity<byte[]> response = restTemplate.exchange(
+                "/api/reports/monthly?mes=" + mes, HttpMethod.GET, conToken(token), byte[].class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_PDF);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().length).isGreaterThan(1000);
+        assertThat(new String(response.getBody(), 0, 4)).isEqualTo("%PDF");
+    }
+
     private void crearGasto(String token, LocalDate fecha, double monto, long categoriaId) {
         Map<String, Object> body = new HashMap<>();
         body.put("monto", monto);

@@ -41,19 +41,6 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long>, JpaSpec
     boolean existsByCategoryId(Long categoryId);
 
     @Query("""
-            select (count(e) > 0)
-            from Expense e
-            where e.user.id = :userId
-              and e.fecha = :fecha
-              and e.monto = :monto
-              and lower(coalesce(e.descripcion, '')) = lower(:descripcion)
-            """)
-    boolean existeDuplicado(@Param("userId") Long userId,
-                            @Param("fecha") LocalDate fecha,
-                            @Param("monto") BigDecimal monto,
-                            @Param("descripcion") String descripcion);
-
-    @Query("""
             select e.category.id as categoriaId, sum(e.monto) as total
             from Expense e
             where e.user.id = :userId

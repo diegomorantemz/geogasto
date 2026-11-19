@@ -48,7 +48,6 @@ public class SecurityConfig {
                                 "/favicon.svg",
                                 "/manifest.webmanifest",
                                 "/sw.js",
-                                "/ejemplo-gastos.csv",
                                 "/error",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",

@@ -14,6 +14,7 @@ import lombok.NoArgsConstructor;
 public class ChangePasswordRequest {
 
     @NotBlank(message = "La contraseña actual es obligatoria")
+    @Size(max = 72, message = "La contraseña actual no puede superar 72 caracteres")
     private String currentPassword;
 
     @NotBlank(message = "La nueva contraseña es obligatoria")

@@ -154,7 +154,7 @@ function renderTable() {
             <tr>
                 <td data-label="Categoría" class="fw-semibold">
                     <span class="d-inline-block rounded-circle me-2"
-                          style="width: 12px; height: 12px; background-color: ${escapeHtml(b.categoryColor || '#cbd5e1')};"></span>
+                          style="width: 12px; height: 12px; background-color: ${escapeHtml(b.categoryColor || '#c9c3b8')};"></span>
                     ${escapeHtml(b.categoryNombre)}
                 </td>
                 <td data-label="Presupuesto" class="text-end">${formatMoney(b.monto)}</td>
