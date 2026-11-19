@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await ensureProfile();
 
     editingId = new URLSearchParams(window.location.search).get('id');
-    const hoy = todayLocalISO();
+    const hoy = todayProfileISO();
     document.getElementById('fecha').value = hoy;
     document.getElementById('fecha').max = hoy;
 

@@ -89,6 +89,31 @@ function todayLocalISO() {
     return new Date(now.getTime() - offsetMs).toISOString().split('T')[0];
 }
 
+// Fecha de hoy según la zona horaria del perfil, que es la que usa el backend.
+function todayProfileISO() {
+    const timezone = typeof getTimezone === 'function' ? getTimezone() : null;
+    if (!timezone) {
+        return todayLocalISO();
+    }
+
+    try {
+        const parts = new Intl.DateTimeFormat('en-CA', {
+            timeZone: timezone,
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        }).formatToParts(new Date());
+        const values = {};
+        parts.forEach(part => { values[part.type] = part.value; });
+        if (values.year && values.month && values.day) {
+            return `${values.year}-${values.month}-${values.day}`;
+        }
+    } catch (ignored) {
+        // Fallback al navegador.
+    }
+    return todayLocalISO();
+}
+
 // Formato de dinero consistente en todas las páginas.
 function formatMoney(amount, moneda = (typeof getMoneda === 'function' ? getMoneda() : 'USD')) {
     const value = Number(amount || 0);

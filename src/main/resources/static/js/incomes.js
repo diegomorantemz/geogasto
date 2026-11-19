@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     incomeModal = new bootstrap.Modal(document.getElementById('incomeModal'));
 
-    const hoy = todayLocalISO();
+    const hoy = todayProfileISO();
     document.getElementById('incomeFecha').value = hoy;
     document.getElementById('incomeFecha').max = hoy;
     document.getElementById('incomeFrom').max = hoy;
@@ -118,7 +118,7 @@ function renderTable(items) {
 function openNewIncomeModal() {
     document.getElementById('incomeForm').reset();
     document.getElementById('incomeId').value = '';
-    document.getElementById('incomeFecha').value = todayLocalISO();
+    document.getElementById('incomeFecha').value = todayProfileISO();
     document.getElementById('incomeModalTitle').textContent = 'Nuevo ingreso';
     incomeModal.show();
 }

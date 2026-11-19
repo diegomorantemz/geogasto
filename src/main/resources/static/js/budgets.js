@@ -310,8 +310,7 @@ function getMonth() {
 }
 
 function localMonthISO() {
-    const now = new Date();
-    return now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+    return todayProfileISO().slice(0, 7);
 }
 
 function escapeHtml(str) {

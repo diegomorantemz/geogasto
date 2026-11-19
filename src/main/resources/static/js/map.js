@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     await ensureProfile();
 
-    const hoy = todayLocalISO();
+    const hoy = todayProfileISO();
     document.getElementById('mapFrom').max = hoy;
     document.getElementById('mapTo').max = hoy;
 

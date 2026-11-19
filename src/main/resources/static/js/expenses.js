@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('receiptFile').addEventListener('change', previewSelectedReceipt);
     document.getElementById('receiptModal').addEventListener('hidden.bs.modal', cleanupReceiptPreview);
 
-    const hoy = todayLocalISO();
+    const hoy = todayProfileISO();
     document.getElementById('filterFrom').max = hoy;
     document.getElementById('filterTo').max = hoy;
 

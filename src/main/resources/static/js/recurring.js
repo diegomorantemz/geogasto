@@ -101,7 +101,7 @@ function renderTable() {
     }
 
     tbody.innerHTML = recurrences.map(r => {
-        const vencido = r.activo && r.proximaFecha < todayLocalISO();
+        const vencido = r.activo && r.proximaFecha < todayProfileISO();
         return `
             <tr>
                 <td data-label="Descripción">
@@ -155,7 +155,7 @@ function openNewRecurringModal() {
     form.reset();
 
     document.getElementById('recurringId').value = '';
-    document.getElementById('recurringFechaInicio').value = todayLocalISO();
+    document.getElementById('recurringFechaInicio').value = todayProfileISO();
     document.getElementById('recurringFechaInicio').disabled = false;
     document.getElementById('recurringFrecuencia').disabled = false;
     document.getElementById('recurringActivo').checked = true;
