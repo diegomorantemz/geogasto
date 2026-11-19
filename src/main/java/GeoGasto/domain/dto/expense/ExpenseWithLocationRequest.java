@@ -4,7 +4,6 @@ import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.PastOrPresent;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -26,7 +25,6 @@ public class ExpenseWithLocationRequest {
     private BigDecimal monto;
 
     @NotNull(message = "La fecha es obligatoria")
-    @PastOrPresent(message = "La fecha no puede ser futura")
     private LocalDate fecha;
 
     @Size(max = 255, message = "La descripción no puede superar 255 caracteres")

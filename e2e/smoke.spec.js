@@ -33,6 +33,7 @@ test('flujo principal: registro, presupuesto, notificación, ingreso y recurrenc
         }).then(r => r.json());
         const comida = categories.find(c => c.nombre === 'Comida');
         const now = new Date();
+        now.setDate(now.getDate() - 1);
         const fecha = new Date(now.getTime() - now.getTimezoneOffset() * 60000)
             .toISOString().slice(0, 10);
         await fetch('/api/expenses', {

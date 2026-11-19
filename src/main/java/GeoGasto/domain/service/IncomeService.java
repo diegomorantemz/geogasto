@@ -16,7 +16,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.DateTimeException;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -45,6 +47,7 @@ public class IncomeService {
     @Transactional
     public IncomeResponse crear(String email, IncomeRequest request) {
         User user = obtenerUsuario(email);
+        validarFechaNoFutura(user, request.getFecha());
         Income income = Income.builder()
                 .user(user)
                 .monto(request.getMonto())
@@ -58,6 +61,7 @@ public class IncomeService {
     @Transactional
     public IncomeResponse actualizar(String email, Long id, IncomeRequest request) {
         User user = obtenerUsuario(email);
+        validarFechaNoFutura(user, request.getFecha());
         Income income = obtenerPropio(user, id);
 
         income.setMonto(request.getMonto());
@@ -115,6 +119,23 @@ public class IncomeService {
             throw new ResourceNotFoundException("Ingreso no encontrado");
         }
         return income;
+    }
+
+    private static void validarFechaNoFutura(User user, LocalDate fecha) {
+        if (fecha == null) {
+            return;
+        }
+        if (fecha.isAfter(LocalDate.now(zonaDe(user)))) {
+            throw new IllegalArgumentException("La fecha no puede ser futura");
+        }
+    }
+
+    private static ZoneId zonaDe(User user) {
+        try {
+            return ZoneId.of(user.getTimezone());
+        } catch (DateTimeException | NullPointerException e) {
+            return ZoneId.of("America/Lima");
+        }
     }
 
     private User obtenerUsuario(String email) {
