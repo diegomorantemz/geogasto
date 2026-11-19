@@ -200,19 +200,3 @@ function showMapError(message) {
     box.textContent = message;
     box.classList.remove('d-none');
 }
-
-function formatDate(iso) {
-    if (!iso) return '-';
-    const d = new Date(iso + 'T00:00:00');
-    return d.toLocaleDateString('es-PE', { year: 'numeric', month: 'short', day: 'numeric' });
-}
-
-function escapeHtml(str) {
-    if (str == null) return '';
-    return String(str)
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#39;');
-}

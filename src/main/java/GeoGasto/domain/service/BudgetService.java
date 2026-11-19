@@ -6,6 +6,7 @@ import GeoGasto.domain.dto.budget.BudgetResponse;
 import GeoGasto.domain.dto.budget.BudgetSummaryResponse;
 import GeoGasto.domain.dto.budget.GeneralBudgetRequest;
 import GeoGasto.domain.exception.ResourceNotFoundException;
+import GeoGasto.domain.util.UserTime;
 import GeoGasto.persistence.entity.Budget;
 import GeoGasto.persistence.entity.Category;
 import GeoGasto.persistence.entity.GeneralBudget;
@@ -21,10 +22,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.YearMonth;
-import java.time.ZoneId;
 import java.time.format.DateTimeParseException;
 import java.util.Comparator;
 import java.util.List;
@@ -238,20 +237,12 @@ public class BudgetService {
 
     private static YearMonth parseMes(String mes, User user) {
         if (mes == null || mes.isBlank()) {
-            return YearMonth.now(zonaDe(user));
+            return YearMonth.now(UserTime.zoneOf(user));
         }
         try {
             return YearMonth.parse(mes);
         } catch (DateTimeParseException e) {
             throw new IllegalArgumentException("El mes debe tener formato YYYY-MM");
-        }
-    }
-
-    private static ZoneId zonaDe(User user) {
-        try {
-            return ZoneId.of(user.getTimezone());
-        } catch (DateTimeException | NullPointerException e) {
-            return ZoneId.of("America/Lima");
         }
     }
 

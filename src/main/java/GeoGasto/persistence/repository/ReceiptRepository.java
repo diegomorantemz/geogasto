@@ -12,6 +12,4 @@ public interface ReceiptRepository extends JpaRepository<Receipt, Long> {
     Optional<Receipt> findByExpenseId(Long expenseId);
 
     Optional<Receipt> findByExpenseIdAndUserId(Long expenseId, Long userId);
-
-    boolean existsByExpenseId(Long expenseId);
 }

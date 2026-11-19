@@ -5,6 +5,7 @@ import GeoGasto.domain.dto.budget.BudgetSummaryResponse;
 import GeoGasto.domain.dto.notification.NotificationResponse;
 import GeoGasto.domain.dto.notification.NotificationSummaryResponse;
 import GeoGasto.domain.exception.ResourceNotFoundException;
+import GeoGasto.domain.util.UserTime;
 import GeoGasto.persistence.entity.Notification;
 import GeoGasto.persistence.entity.RecurringExpense;
 import GeoGasto.persistence.entity.User;
@@ -16,7 +17,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.ZoneId;
@@ -74,7 +74,7 @@ public class NotificationService {
 
     private int generarParaUsuario(User user) {
         int creadas = 0;
-        ZoneId zone = zonaDe(user);
+        ZoneId zone = UserTime.zoneOf(user);
         LocalDate hoy = LocalDate.now(zone);
         String mes = YearMonth.from(hoy).toString();
 
@@ -172,14 +172,6 @@ public class NotificationService {
     private User obtenerUsuario(String email) {
         return userRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
-    }
-
-    private static ZoneId zonaDe(User user) {
-        try {
-            return ZoneId.of(user.getTimezone());
-        } catch (DateTimeException | NullPointerException e) {
-            return ZoneId.of("America/Lima");
-        }
     }
 
     private NotificationResponse toResponse(Notification notification) {

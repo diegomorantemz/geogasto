@@ -99,12 +99,12 @@ function renderAppNav() {
                         <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button"
                                 data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="bi bi-person-circle"></i>
-                            <span class="nav-user-text">${navEscape(name)}</span>
+                            <span class="nav-user-text">${escapeHtml(name)}</span>
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end">
                             <li class="px-3 py-2">
-                                <div class="small fw-semibold">${navEscape(name)}</div>
-                                <div class="small text-muted text-truncate" style="max-width: 220px;">${navEscape(email)}</div>
+                                <div class="small fw-semibold">${escapeHtml(name)}</div>
+                                <div class="small text-muted text-truncate" style="max-width: 220px;">${escapeHtml(email)}</div>
                             </li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="/profile.html"><i class="bi bi-person-gear me-2"></i>Mi perfil</a></li>
@@ -155,10 +155,10 @@ function renderAppNav() {
             </div>
             <div class="offcanvas-body">
                 <div class="mobile-menu-user mb-3">
-                    <div class="avatar-circle avatar-sm">${navEscape((name.trim().charAt(0) || 'G').toUpperCase())}</div>
+                    <div class="avatar-circle avatar-sm">${escapeHtml((name.trim().charAt(0) || 'G').toUpperCase())}</div>
                     <div class="min-w-0">
-                        <div class="fw-semibold text-truncate">${navEscape(name)}</div>
-                        <div class="small text-muted text-truncate">${navEscape(email)}</div>
+                        <div class="fw-semibold text-truncate">${escapeHtml(name)}</div>
+                        <div class="small text-muted text-truncate">${escapeHtml(email)}</div>
                     </div>
                 </div>
                 <div class="list-group list-group-flush">
@@ -264,13 +264,13 @@ function renderNotificationList(items) {
 
     list.innerHTML = items.map(n => `
         <button type="button" class="notification-item ${n.leida ? 'read' : 'unread'}"
-                data-id="${n.id}" data-link="${navEscape(n.link || '')}">
+                data-id="${n.id}" data-link="${escapeHtml(n.link || '')}">
             <div class="notification-icon">
                 <i class="bi ${n.tipo === 'RECURRENTE' ? 'bi-arrow-repeat' : 'bi-bullseye'}"></i>
             </div>
             <div class="min-w-0">
-                <div class="fw-semibold small">${navEscape(n.titulo)}</div>
-                <div class="small text-muted">${navEscape(n.mensaje)}</div>
+                <div class="fw-semibold small">${escapeHtml(n.titulo)}</div>
+                <div class="small text-muted">${escapeHtml(n.mensaje)}</div>
                 <div class="small text-muted mt-1">${formatNotificationDate(n.createdAt)}</div>
             </div>
         </button>
@@ -314,16 +314,6 @@ function formatNotificationDate(value) {
         hour: '2-digit',
         minute: '2-digit'
     });
-}
-
-function navEscape(str) {
-    if (str == null) return '';
-    return String(str)
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#39;');
 }
 
 document.addEventListener('DOMContentLoaded', renderAppNav);

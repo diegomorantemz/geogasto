@@ -127,3 +127,42 @@ function formatMoney(amount, moneda = (typeof getMoneda === 'function' ? getMone
     const symbol = typeof currencySymbol === 'function' ? currencySymbol(moneda) : moneda;
     return symbol + ' ' + formatted;
 }
+
+// Helpers compartidos por todas las páginas.
+function escapeHtml(str) {
+    if (str == null) return '';
+    return String(str)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+}
+
+function formatDate(iso, empty = '-') {
+    if (!iso) return empty;
+    const value = String(iso);
+    const date = new Date(value.includes('T') ? value : value + 'T00:00:00');
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleDateString('es-PE', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+    });
+}
+
+function showSuccess(message, timeout = 3000) {
+    const box = document.getElementById('successBox');
+    if (!box) return;
+    box.textContent = message;
+    box.classList.remove('d-none');
+    window.setTimeout(() => box.classList.add('d-none'), timeout);
+}
+
+function showError(message, timeout = 5000) {
+    const box = document.getElementById('errorBox');
+    if (!box) return;
+    box.textContent = message;
+    box.classList.remove('d-none');
+    window.setTimeout(() => box.classList.add('d-none'), timeout);
+}

@@ -2,6 +2,7 @@ package GeoGasto.domain.service;
 
 import GeoGasto.domain.dto.stats.StatsResponse;
 import GeoGasto.domain.exception.ResourceNotFoundException;
+import GeoGasto.domain.util.UserTime;
 import GeoGasto.persistence.entity.Expense;
 import GeoGasto.persistence.entity.Income;
 import GeoGasto.persistence.entity.User;
@@ -14,10 +15,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.YearMonth;
-import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -44,7 +43,7 @@ public class StatsService {
         User user = userRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado"));
 
-        LocalDate hoy = LocalDate.now(zonaDe(user));
+        LocalDate hoy = UserTime.today(user);
         LocalDate hasta = hoy;
         LocalDate desde = hasta.minusMonths(11).withDayOfMonth(1);
 
@@ -112,14 +111,6 @@ public class StatsService {
                 .gastosPorCategoria(porCategoria)
                 .gastosPorMes(calcularPorMes(gastos, ingresos, YearMonth.from(desde)))
                 .build();
-    }
-
-    private static ZoneId zonaDe(User user) {
-        try {
-            return ZoneId.of(user.getTimezone());
-        } catch (DateTimeException | NullPointerException e) {
-            return ZoneId.of("America/Lima");
-        }
     }
 
     private static BigDecimal sumarGastos(List<Expense> gastos) {

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'geogasto-v3';
+const CACHE_NAME = 'geogasto-v4';
 const APP_SHELL = [
     '/',
     '/index.html',
