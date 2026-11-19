@@ -44,7 +44,7 @@ function renderTable(items) {
         <tr>
             <td data-label="Color">
                 <span class="d-inline-block rounded-circle border"
-                      style="width: 24px; height: 24px; background-color: ${escapeHtml(c.color || '#dee2e6')};"></span>
+                      style="width: 24px; height: 24px; background-color: ${escapeHtml(c.color || '#c9c3b8')};"></span>
             </td>
             <td data-label="Nombre" class="fw-semibold">${escapeHtml(c.nombre)}</td>
             <td data-label="Icono">
@@ -68,7 +68,7 @@ function renderTable(items) {
 function openNewCategoryModal() {
     document.getElementById('categoryForm').reset();
     document.getElementById('categoryId').value = '';
-    document.getElementById('categoryColor').value = '#2563eb';
+    document.getElementById('categoryColor').value = '#6f6a61';
     document.getElementById('categoryModalTitle').textContent = 'Nueva categoría';
     categoryModal.show();
 }
@@ -79,7 +79,7 @@ function editCategory(id) {
 
     document.getElementById('categoryId').value = c.id;
     document.getElementById('categoryNombre').value = c.nombre || '';
-    document.getElementById('categoryColor').value = c.color || '#2563eb';
+    document.getElementById('categoryColor').value = c.color || '#6f6a61';
     document.getElementById('categoryIcono').value = c.icono || '';
     document.getElementById('categoryModalTitle').textContent = 'Editar categoría';
     categoryModal.show();

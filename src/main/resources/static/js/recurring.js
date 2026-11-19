@@ -112,9 +112,9 @@ function renderTable() {
                 </td>
                 <td data-label="Categoría">
                     ${r.categoryNombre
-                        ? `<span class="badge bg-light text-dark">
+                        ? `<span class="badge-soft">
                                <span class="d-inline-block rounded-circle me-1"
-                                     style="width: 8px; height: 8px; background-color: ${escapeHtml(r.categoryColor || '#cbd5e1')};"></span>
+                                     style="width: 8px; height: 8px; background-color: ${escapeHtml(r.categoryColor || '#c9c3b8')};"></span>
                                ${escapeHtml(r.categoryNombre)}
                            </span>`
                         : '<span class="text-muted small">Sin categoría</span>'}

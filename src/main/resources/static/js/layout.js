@@ -10,11 +10,41 @@ const SECONDARY_NAV = [
     { key: 'presupuestos', href: '/budgets.html', icon: 'bi-bullseye', label: 'Presupuestos' },
     { key: 'recurrentes', href: '/recurring.html', icon: 'bi-arrow-repeat', label: 'Recurrentes' },
     { key: 'categorias', href: '/categories.html', icon: 'bi-tags', label: 'Categorías' },
-    { key: 'lugares', href: '/places.html', icon: 'bi-bookmark-star', label: 'Lugares' },
-    { key: 'importar', href: '/import.html', icon: 'bi-file-earmark-arrow-up', label: 'Importar CSV' }
+    { key: 'lugares', href: '/places.html', icon: 'bi-bookmark-star', label: 'Lugares' }
 ];
 
 const SECONDARY_KEYS = new Set(SECONDARY_NAV.map(item => item.key).concat('perfil'));
+
+function brandMark() {
+    return `
+        <span class="app-brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+                <path d="M16.6 8.6a5.7 5.7 0 1 0 0 6.8M16.6 12h-4"
+                      stroke="currentColor" stroke-width="1.7"
+                      stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </span>`;
+}
+
+function themeToggle(extraClass = '') {
+    return `
+        <button type="button" class="theme-toggle ${extraClass}" data-theme-toggle
+                aria-label="Cambiar a modo oscuro" title="Cambiar a modo oscuro">
+            <span class="theme-icon theme-icon-moon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M20 14.6A8.1 8.1 0 0 1 9.4 4a8.3 8.3 0 1 0 10.6 10.6Z"
+                          stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+                </svg>
+            </span>
+            <span class="theme-icon theme-icon-sun" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="3.6" stroke="currentColor" stroke-width="1.6"/>
+                    <path d="M12 2.8v2M12 19.2v2M21.2 12h-2M4.8 12h-2M18.5 5.5l-1.4 1.4M6.9 17.1l-1.4 1.4M18.5 18.5l-1.4-1.4M6.9 6.9 5.5 5.5"
+                          stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                </svg>
+            </span>
+        </button>`;
+}
 
 function renderAppNav() {
     const host = document.getElementById('appNav');
@@ -31,10 +61,10 @@ function renderAppNav() {
     const secondaryActive = SECONDARY_KEYS.has(active);
 
     host.innerHTML = `
-        <nav class="navbar navbar-expand-xl navbar-dark bg-primary app-topnav sticky-top d-none d-xl-flex">
+        <nav class="navbar navbar-expand-xl app-topnav sticky-top d-none d-xl-flex">
             <div class="container">
                 <a class="navbar-brand" href="/index.html">
-                    <i class="bi bi-wallet2"></i> GeoGasto
+                    ${brandMark()} GeoGasto
                 </a>
                 <ul class="navbar-nav me-auto">
                     ${PRIMARY_NAV.map(item => navLink(item, active)).join('')}
@@ -55,17 +85,18 @@ function renderAppNav() {
                     </li>
                 </ul>
                 <div class="d-flex align-items-center gap-2">
-                    <a href="/new-expense.html" class="btn btn-light btn-sm">
+                    <a href="/new-expense.html" class="btn btn-primary btn-sm">
                         <i class="bi bi-plus-circle"></i> Nuevo gasto
                     </a>
-                    <button type="button" class="btn btn-outline-light btn-sm notification-bell"
+                    ${themeToggle('nav-theme-toggle')}
+                    <button type="button" class="btn btn-outline-secondary btn-sm notification-bell"
                             data-bs-toggle="offcanvas" data-bs-target="#notificationsMenu"
                             aria-label="Notificaciones" aria-controls="notificationsMenu">
                         <i class="bi bi-bell"></i>
                         <span class="notification-badge d-none">0</span>
                     </button>
                     <div class="dropdown">
-                        <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button"
+                        <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button"
                                 data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="bi bi-person-circle"></i>
                             <span class="nav-user-text">${navEscape(name)}</span>
@@ -87,10 +118,11 @@ function renderAppNav() {
         </nav>
 
         <header class="mobile-topbar d-xl-none">
-            <a class="navbar-brand text-white" href="/index.html">
-                <i class="bi bi-wallet2"></i> GeoGasto
+            <a class="navbar-brand" href="/index.html">
+                ${brandMark()} GeoGasto
             </a>
             <div class="mobile-topbar-actions">
+                ${themeToggle('mobile-theme-toggle')}
                 <button type="button" class="mobile-topbar-btn notification-bell"
                         data-bs-toggle="offcanvas" data-bs-target="#notificationsMenu"
                         aria-label="Notificaciones" aria-controls="notificationsMenu">
@@ -165,6 +197,10 @@ function renderAppNav() {
             </div>
         </div>
     `;
+
+    if (window.GGTheme) {
+        window.GGTheme.refresh();
+    }
 
     loadNotifications();
 }

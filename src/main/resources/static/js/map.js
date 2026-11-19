@@ -129,7 +129,7 @@ function applyData(items) {
 
     gastos.forEach(e => {
         const marker = L.marker([e.latitud, e.longitud], {
-            icon: expenseIcon(e.categoryColor || '#2563eb')
+            icon: expenseIcon(e.categoryColor || '#6f6a61')
         });
 
         marker.bindPopup(`

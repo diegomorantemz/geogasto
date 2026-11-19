@@ -1,4 +1,4 @@
-const CACHE_NAME = 'geogasto-v1';
+const CACHE_NAME = 'geogasto-v3';
 const APP_SHELL = [
     '/',
     '/index.html',
@@ -13,10 +13,10 @@ const APP_SHELL = [
     '/categories.html',
     '/places.html',
     '/profile.html',
-    '/import.html',
     '/offline.html',
     '/css/app.css',
     '/js/api.js',
+    '/js/theme.js',
     '/js/auth.js',
     '/js/layout.js',
     '/js/dashboard.js',
@@ -29,7 +29,6 @@ const APP_SHELL = [
     '/js/categories.js',
     '/js/places.js',
     '/js/profile.js',
-    '/js/import.js',
     '/favicon.svg',
     '/icons/icon-192.png',
     '/icons/icon-512.png',

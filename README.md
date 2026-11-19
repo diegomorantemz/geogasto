@@ -140,12 +140,8 @@ La app está pensada primero para móvil: barra superior compacta, navegación i
 - Miniatura del comprobante y visor integrado.
 - Almacenamiento local configurable y volumen Docker para persistencia.
 
-### Reportes e importación
+### Reportes
 - Reporte PDF mensual con resumen, presupuestos, categorías y detalle de gastos.
-- Importación de CSV bancario con vista previa.
-- Detección de duplicados dentro del archivo y contra la base de datos.
-- Mapeo de categorías por nombre o categoría por defecto.
-- Resumen de filas importadas, omitidas y con error.
 
 ### PWA
 - Manifest e iconos para instalar en pantalla de inicio.
@@ -165,6 +161,12 @@ La app está pensada primero para móvil: barra superior compacta, navegación i
 - Cambio de contraseña con verificación de la contraseña actual.
 - Gestión de lugares guardados: listar, renombrar y eliminar.
 - Categorías por defecto al registrarse para empezar sin fricción.
+
+### Interfaz
+- Diseño minimalista con paleta neutra y tipografía serif en los títulos.
+- Modo claro y oscuro en toda la app, con preferencia persistente.
+- Iconos propios para la marca y el cambio de tema.
+- Formularios de acceso con validación en línea y confirmación de contraseña.
 
 ### Experiencia móvil
 - Navegación inferior con acción central para nuevo gasto y menú “Más”.
@@ -242,7 +244,6 @@ Servicios externos:
 | Caffeine | 3.x | Caché en memoria para geocodificación |
 | Spring Boot Actuator | 4.x | Healthchecks y métricas operativas |
 | OpenPDF | 2.0.5 | Generación de reportes PDF |
-| Apache Commons CSV | 1.14.1 | Importación de extractos CSV |
 | Spring Mail | 4.x | Email opcional de notificaciones |
 | Testcontainers | 2.x | Pruebas de integración con PostgreSQL |
 | Playwright | 1.65 | Pruebas E2E del flujo principal |
@@ -592,16 +593,6 @@ respetando la zona horaria de cada usuario.
 |--------|------|-------------|
 | `GET` | `/api/reports/monthly?mes=2026-11` | Descargar reporte PDF mensual |
 
-### Importación CSV
-
-| Método | Ruta | Descripción |
-|--------|------|-------------|
-| `POST` | `/api/expenses/import/preview` | Previsualizar filas del CSV (`multipart`, campo `file`) |
-| `POST` | `/api/expenses/import` | Importar filas válidas y omitir duplicados |
-
-Acepta `categoryId` opcional y `delimiter=auto|,|;|tab`. Columnas mínimas:
-`fecha` y `monto`; opcionales: `descripcion` y `categoria`.
-
 ### Estadísticas
 
 | Método | Ruta | Descripción |
@@ -664,10 +655,9 @@ docker-compose.yml        # PostgreSQL + aplicación
 11. **Gestiona tus lugares** en `/places.html` y tu cuenta en `/profile.html`.
 12. **Revisa la campana** para alertas de presupuesto y recordatorios de recurrentes.
 13. **Descarga el reporte PDF** del mes desde el dashboard.
-14. **Importa un CSV bancario** desde “Más → Importar CSV”, previsualiza y confirma.
-15. **Instala la PWA** desde el navegador móvil; incluye manifest, service worker
+14. **Instala la PWA** desde el navegador móvil; incluye manifest, service worker
     y página offline.
-16. **Revisa el dashboard** en `/index.html`: total del mes, ingresos, balance,
+15. **Revisa el dashboard** en `/index.html`: total del mes, ingresos, balance,
     comparación mensual, presupuesto, próximos recurrentes y evolución de 12 meses.
 
 ---
@@ -731,8 +721,8 @@ El workflow `.github/workflows/ci.yml` se ejecuta en cada push a `master` o
   el nombre se genera con UUID para evitar colisiones y path traversal.
 - **Notificaciones deduplicadas** por usuario + evento + periodo, con email
   opcional apagado por defecto.
-- **Reportes PDF** generados con OpenPDF y **CSV bancario** procesado con
-  Commons CSV, con previsualización y detección de duplicados.
+- **Reportes PDF** generados con OpenPDF, con resumen, presupuestos, categorías
+  y detalle de gastos.
 - **PWA** con service worker network-first para no servir JS/CSS antiguos.
 - **CSP, X-Frame-Options y Referrer-Policy** como cabeceras de seguridad.
 - **Perfiles dev/prod** para separar logs SQL y Swagger de la configuración

@@ -7,6 +7,48 @@ if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').m
 
 let chartCategorias;
 let chartMeses;
+let lastCategoryItems = null;
+let lastMonthItems = null;
+
+function chartTheme() {
+    const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    return {
+        dark,
+        text: dark ? '#f2f0ea' : '#1b1a17',
+        muted: dark ? '#9c968b' : '#6f6a61',
+        grid: dark ? 'rgba(242, 240, 234, .10)' : 'rgba(27, 26, 23, .08)',
+        surface: dark ? '#171614' : '#fbfaf7',
+        bar: dark ? '#e8e4dc' : '#1b1a17',
+        income: dark ? '#9cc290' : '#3f6b3a'
+    };
+}
+
+function applyChartTheme() {
+    if (typeof Chart === 'undefined') return;
+    const theme = chartTheme();
+
+    Chart.defaults.color = theme.muted;
+    Chart.defaults.borderColor = theme.grid;
+    Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
+
+    if (Chart.defaults.plugins && Chart.defaults.plugins.tooltip) {
+        Chart.defaults.plugins.tooltip.backgroundColor = theme.dark ? '#f2f0ea' : '#1b1a17';
+        Chart.defaults.plugins.tooltip.titleColor = theme.dark ? '#151412' : '#fbfaf7';
+        Chart.defaults.plugins.tooltip.bodyColor = theme.dark ? '#151412' : '#fbfaf7';
+    }
+}
+
+applyChartTheme();
+
+document.addEventListener('geogasto:themechange', () => {
+    applyChartTheme();
+    if (lastCategoryItems !== null) {
+        renderCategoryChart(lastCategoryItems);
+    }
+    if (lastMonthItems !== null) {
+        renderMonthChart(lastMonthItems);
+    }
+});
 
 document.addEventListener('DOMContentLoaded', async () => {
     if (!requireLogin()) return;
@@ -23,7 +65,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function downloadMonthlyReport() {
     try {
-        const response = await fetch('/api/reports/monthly', {
+        const mes = todayProfileISO().slice(0, 7);
+        const response = await fetch('/api/reports/monthly?mes=' + encodeURIComponent(mes), {
             headers: { Authorization: 'Bearer ' + getToken() }
         });
         if (response.status === 401) {
@@ -38,7 +81,7 @@ async function downloadMonthlyReport() {
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = 'geogasto-reporte.pdf';
+        link.download = 'geogasto-' + mes + '.pdf';
         document.body.appendChild(link);
         link.click();
         link.remove();
@@ -252,9 +295,11 @@ function renderVariacion(value) {
 }
 
 function renderCategoryChart(items) {
+    lastCategoryItems = items;
     const canvas = document.getElementById('chartCategorias');
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
+    const theme = chartTheme();
 
     if (items.length === 0) {
         canvas.parentNode.innerHTML = '<p class="text-center text-muted mt-5">Sin datos este mes</p>';
@@ -269,9 +314,9 @@ function renderCategoryChart(items) {
             labels: items.map(i => i.categoryNombre),
             datasets: [{
                 data: items.map(i => Number(i.total)),
-                backgroundColor: items.map(i => i.color || '#2563eb'),
+                backgroundColor: items.map(i => i.color || '#6f6a61'),
                 borderWidth: 2,
-                borderColor: '#fff'
+                borderColor: theme.surface
             }]
         },
         options: {
@@ -291,9 +336,11 @@ function renderCategoryChart(items) {
 }
 
 function renderMonthChart(items) {
+    lastMonthItems = items;
     const canvas = document.getElementById('chartMeses');
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
+    const theme = chartTheme();
 
     if (items.length === 0) {
         canvas.parentNode.innerHTML = '<p class="text-center text-muted mt-5">Sin datos</p>';
@@ -311,7 +358,7 @@ function renderMonthChart(items) {
                     type: 'bar',
                     label: 'Gastos',
                     data: items.map(i => Number(i.total)),
-                    backgroundColor: '#2563eb',
+                    backgroundColor: theme.bar,
                     borderRadius: 6,
                     order: 2
                 },
@@ -319,8 +366,8 @@ function renderMonthChart(items) {
                     type: 'line',
                     label: 'Ingresos',
                     data: items.map(i => Number(i.ingresos || 0)),
-                    borderColor: '#10b981',
-                    backgroundColor: '#10b981',
+                    borderColor: theme.income,
+                    backgroundColor: theme.income,
                     tension: 0.3,
                     pointRadius: 3,
                     borderWidth: 2,

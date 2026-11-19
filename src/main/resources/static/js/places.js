@@ -46,7 +46,7 @@ function renderTable(items) {
             </td>
             <td data-label="Dirección" class="small">${escapeHtml(p.direccion || '-')}</td>
             <td data-label="Ciudad" class="small text-muted">${escapeHtml(p.ciudad || '-')}${p.pais ? ', ' + escapeHtml(p.pais) : ''}</td>
-            <td data-label="Usos" class="text-center"><span class="badge bg-light text-dark">${p.usageCount || 0}</span></td>
+            <td data-label="Usos" class="text-center"><span class="badge-soft">${p.usageCount || 0}</span></td>
             <td data-label="Acciones" class="text-end text-nowrap">
                 <button class="btn btn-sm btn-outline-primary me-1" onclick="openEditPlace(${p.id})"
                         aria-label="Renombrar lugar" title="Renombrar">
