@@ -755,5 +755,8 @@ El workflow `.github/workflows/ci.yml` se ejecuta en cada push a `master` o
 
 ## Autor
 
-**Diego Morante** — Proyecto universitario de administración de gastos con
+Proyecto universitario de administración de gastos con
 ubicación geográfica.
+**Diego Morante**
+**Aaron Olaechea**
+**D'alessandro Garcia**
