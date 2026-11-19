@@ -230,11 +230,11 @@ Servicios externos:
 | Tecnología | Versión | Uso |
 |------------|---------|-----|
 | Java | 17 | Lenguaje |
-| Spring Boot | 4.1.1 | Framework principal |
+| Spring Boot | 4.1.2 | Framework principal |
 | Spring Security | 7.x | Autenticación y autorización |
 | Spring Data JPA | 4.x | Persistencia |
 | Hibernate | 7.x | ORM |
-| JJWT | 0.12.6 | Generación/validación de JWT |
+| JJWT | 0.13.0 | Generación/validación de JWT |
 | Flyway | 12.x | Migraciones de base de datos |
 | Lombok | 1.18.x | Reducción de boilerplate |
 | PostgreSQL Driver | 42.7.x | Conexión a PostgreSQL |
@@ -242,7 +242,7 @@ Servicios externos:
 | Caffeine | 3.x | Caché en memoria para geocodificación |
 | Spring Boot Actuator | 4.x | Healthchecks y métricas operativas |
 | OpenPDF | 2.0.5 | Generación de reportes PDF |
-| Apache Commons CSV | 1.12.0 | Importación de extractos CSV |
+| Apache Commons CSV | 1.14.1 | Importación de extractos CSV |
 | Spring Mail | 4.x | Email opcional de notificaciones |
 | Testcontainers | 2.x | Pruebas de integración con PostgreSQL |
 | Playwright | 1.65 | Pruebas E2E del flujo principal |
