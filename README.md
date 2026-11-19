@@ -23,7 +23,7 @@ obtenida por GPS, búsqueda por nombre o selección manual en un mapa interactiv
 - [Docker](#docker)
 - [CI](#ci)
 - [Decisiones técnicas](#decisiones-técnicas)
-- [Autor](#autor)
+- [Autores](#autores)
 
 ---
 
@@ -753,8 +753,10 @@ El workflow `.github/workflows/ci.yml` se ejecuta en cada push a `master` o
 
 ---
 
-## Autor
+## Autores
 
-**Diego Morante**
-**Aaron Olaechea**
-**D'alessandro Garcia**
+- **Diego Morante** — [@diegomorantemz](https://github.com/diegomorantemz)
+- **Aaron Olaechea**
+- **D'alessandro Garcia**
+
+Proyecto universitario de administración de gastos con ubicación geográfica.
