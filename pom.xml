@@ -153,7 +153,7 @@
 		<dependency>
 			<groupId>me.paulschwarz</groupId>
 			<artifactId>springboot4-dotenv</artifactId>
-			<version>5.0.1</version>
+			<version>5.1.0</version>
 		</dependency>
 	</dependencies>
 
