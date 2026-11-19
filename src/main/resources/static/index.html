@@ -22,7 +22,10 @@
             <h2 class="page-title mb-1">Hola, <span id="userName">usuario</span> 👋</h2>
             <p class="text-muted mb-0">Este es el resumen de tus gastos.</p>
         </div>
-        <div class="d-flex align-items-center gap-2">
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <button class="btn btn-outline-primary btn-sm" onclick="downloadMonthlyReport()">
+                <i class="bi bi-file-earmark-pdf"></i> Descargar PDF
+            </button>
             <label for="currencySelect" class="small text-muted mb-0">Moneda</label>
             <select id="currencySelect" class="form-select form-select-sm" style="width: auto;" title="Moneda">
                 <option value="USD">USD ($)</option>
@@ -164,6 +167,7 @@
                  aria-label="Avance del presupuesto" aria-valuemin="0" aria-valuemax="100">
                 <div id="budgetProgressBar" class="progress-bar bg-success" style="width: 0%"></div>
             </div>
+            <div class="small text-muted mt-2 d-none" id="budgetGeneralLine"></div>
             <div id="budgetAlerts" class="mt-3"></div>
         </div>
     </div>

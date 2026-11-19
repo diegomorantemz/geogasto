@@ -3,6 +3,8 @@ package GeoGasto.persistence.repository;
 import GeoGasto.persistence.entity.Expense;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -18,16 +20,38 @@ import java.util.Optional;
 @Repository
 public interface ExpenseRepository extends JpaRepository<Expense, Long>, JpaSpecificationExecutor<Expense> {
 
+    @EntityGraph(attributePaths = {"category", "location", "receipt"})
     Page<Expense> findByUserId(Long userId, Pageable pageable);
 
     Optional<Expense> findByIdAndUserId(Long id, Long userId);
 
-    @EntityGraph(attributePaths = {"category", "location"})
+    @EntityGraph(attributePaths = {"category", "location", "receipt"})
     List<Expense> findByUserIdAndFechaBetween(Long userId, LocalDate desde, LocalDate hasta);
+
+    @Override
+    @EntityGraph(attributePaths = {"category", "location", "receipt"})
+    Page<Expense> findAll(Specification<Expense> spec, Pageable pageable);
+
+    @Override
+    @EntityGraph(attributePaths = {"category", "location", "receipt"})
+    List<Expense> findAll(Specification<Expense> spec, Sort sort);
 
     boolean existsByLocationId(Long locationId);
 
     boolean existsByCategoryId(Long categoryId);
+
+    @Query("""
+            select (count(e) > 0)
+            from Expense e
+            where e.user.id = :userId
+              and e.fecha = :fecha
+              and e.monto = :monto
+              and lower(coalesce(e.descripcion, '')) = lower(:descripcion)
+            """)
+    boolean existeDuplicado(@Param("userId") Long userId,
+                            @Param("fecha") LocalDate fecha,
+                            @Param("monto") BigDecimal monto,
+                            @Param("descripcion") String descripcion);
 
     @Query("""
             select e.category.id as categoriaId, sum(e.monto) as total

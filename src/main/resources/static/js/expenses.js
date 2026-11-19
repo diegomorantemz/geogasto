@@ -7,6 +7,7 @@ let totalPages = 1;
 let lastPageSize = 0;
 let receiptExpenseId = null;
 let receiptSubmitting = false;
+let receiptPreviewUrl = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
     if (!requireLogin()) return;
@@ -14,6 +15,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     await ensureProfile();
 
     receiptModal = new bootstrap.Modal(document.getElementById('receiptModal'));
+    document.getElementById('receiptFile').addEventListener('change', previewSelectedReceipt);
+    document.getElementById('receiptModal').addEventListener('hidden.bs.modal', cleanupReceiptPreview);
 
     const hoy = todayLocalISO();
     document.getElementById('filterFrom').max = hoy;
@@ -224,6 +227,8 @@ async function openReceipt(id) {
         document.getElementById('receiptModalTitle').textContent =
             'Comprobante: ' + (expense.descripcion || 'Gasto');
 
+        cleanupReceiptPreview();
+
         const existing = document.getElementById('receiptExisting');
         const empty = document.getElementById('receiptEmpty');
         if (expense.receiptId) {
@@ -233,6 +238,7 @@ async function openReceipt(id) {
             document.getElementById('receiptTamano').textContent = expense.receiptTamano
                 ? '(' + formatBytes(expense.receiptTamano) + ')'
                 : '';
+            loadReceiptPreview(id, expense.receiptContentType);
         } else {
             existing.classList.add('d-none');
             empty.classList.remove('d-none');
@@ -295,7 +301,13 @@ async function handleUploadReceipt(event) {
         return;
     }
 
-    const file = input.files[0];
+    let file = input.files[0];
+    if (!file.type.startsWith('image/') && file.size > 5 * 1024 * 1024) {
+        showError('El comprobante no puede superar 5 MB');
+        return;
+    }
+
+    file = await compressReceipt(file);
     if (file.size > 5 * 1024 * 1024) {
         showError('El comprobante no puede superar 5 MB');
         return;
@@ -334,6 +346,95 @@ async function handleUploadReceipt(event) {
         receiptSubmitting = false;
         btn.disabled = false;
         btn.innerHTML = original;
+    }
+}
+
+async function loadReceiptPreview(expenseId, contentType) {
+    const img = document.getElementById('receiptPreview');
+    if (!contentType || !contentType.startsWith('image/')) {
+        img.classList.add('d-none');
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/expenses/' + expenseId + '/receipt', {
+            headers: { Authorization: 'Bearer ' + getToken() }
+        });
+        if (!response.ok) return;
+
+        const blob = await response.blob();
+        cleanupReceiptPreview();
+        receiptPreviewUrl = URL.createObjectURL(blob);
+        img.src = receiptPreviewUrl;
+        img.classList.remove('d-none');
+    } catch (ignored) {
+        img.classList.add('d-none');
+    }
+}
+
+function previewSelectedReceipt() {
+    const input = document.getElementById('receiptFile');
+    const img = document.getElementById('receiptPreview');
+    if (!input.files || !input.files.length) {
+        return;
+    }
+
+    const file = input.files[0];
+    if (!file.type.startsWith('image/')) {
+        img.classList.add('d-none');
+        return;
+    }
+
+    if (receiptPreviewUrl) {
+        URL.revokeObjectURL(receiptPreviewUrl);
+    }
+    receiptPreviewUrl = URL.createObjectURL(file);
+    img.src = receiptPreviewUrl;
+    img.classList.remove('d-none');
+}
+
+function cleanupReceiptPreview() {
+    const img = document.getElementById('receiptPreview');
+    if (img) {
+        img.classList.add('d-none');
+        img.removeAttribute('src');
+    }
+    if (receiptPreviewUrl) {
+        URL.revokeObjectURL(receiptPreviewUrl);
+        receiptPreviewUrl = null;
+    }
+}
+
+async function compressReceipt(file) {
+    if (!file.type.startsWith('image/') || file.size < 1024 * 1024) {
+        return file;
+    }
+    if (typeof createImageBitmap !== 'function') {
+        return file;
+    }
+
+    try {
+        const bitmap = await createImageBitmap(file);
+        const maxSize = 1600;
+        const scale = Math.min(1, maxSize / Math.max(bitmap.width, bitmap.height));
+        const width = Math.round(bitmap.width * scale);
+        const height = Math.round(bitmap.height * scale);
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext('2d').drawImage(bitmap, 0, 0, width, height);
+        bitmap.close();
+
+        const blob = await new Promise(resolve =>
+            canvas.toBlob(resolve, 'image/jpeg', 0.82));
+        if (!blob) return file;
+
+        return new File([blob], file.name.replace(/\.[^.]+$/, '') + '.jpg', {
+            type: 'image/jpeg'
+        });
+    } catch (ignored) {
+        return file;
     }
 }
 

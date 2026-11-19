@@ -95,14 +95,17 @@ La app está pensada primero para móvil: barra superior compacta, navegación i
 - Ingresos del mes, balance y tasa de ahorro.
 - Gráfico comparativo de gastos vs. ingresos en los últimos 12 meses.
 - Próximos gastos recurrentes.
+- Campana de notificaciones con alertas de presupuesto y recurrentes.
+- Reporte PDF mensual descargable.
 - Respeta la zona horaria configurada por el usuario.
 
 ### Presupuestos
-- Presupuesto mensual por categoría.
+- Presupuesto mensual general y presupuestos por categoría.
 - Cálculo automático de gastado, disponible, porcentaje y estado.
 - Estados: en orden, cerca del límite (≥ 80 %) y excedido.
 - Página de gestión con selector de mes y edición/eliminación.
-- Alertas visibles en el dashboard.
+- Botón para copiar los presupuestos del mes anterior.
+- Alertas visibles en el dashboard y en la campana.
 
 ### Ingresos y balance
 - CRUD de ingresos con monto, fecha, descripción y fuente.
@@ -117,14 +120,38 @@ La app está pensada primero para móvil: barra superior compacta, navegación i
 - Generación automática diaria de los gastos vencidos.
 - Botón para generar pendientes manualmente.
 - Pausar, editar y eliminar recurrencias sin borrar los gastos ya generados.
+- Omitir el próximo vencimiento sin desactivar la recurrencia.
 - Próximos vencimientos visibles en el dashboard.
 - Monto mensual estimado de las recurrencias activas.
+- Recordatorios en la campana de notificaciones.
+
+### Notificaciones
+- Campana con contador de no leídas en escritorio y móvil.
+- Alertas de presupuesto al 80 % y al excederse, incluyendo el presupuesto general.
+- Recordatorios de gastos recurrentes próximos o vencidos.
+- Marcar una o todas como leídas.
+- Email opcional configurable y **desactivado por defecto**.
 
 ### Comprobantes
 - Adjuntar una imagen JPG/PNG/WebP o un PDF a cada gasto.
 - Validación de tipo MIME, firma del archivo y tamaño máximo de 5 MB.
 - Ver, reemplazar o quitar el comprobante desde la lista de gastos.
+- Captura desde cámara en móvil y compresión automática de imágenes grandes.
+- Miniatura del comprobante y visor integrado.
 - Almacenamiento local configurable y volumen Docker para persistencia.
+
+### Reportes e importación
+- Reporte PDF mensual con resumen, presupuestos, categorías y detalle de gastos.
+- Importación de CSV bancario con vista previa.
+- Detección de duplicados dentro del archivo y contra la base de datos.
+- Mapeo de categorías por nombre o categoría por defecto.
+- Resumen de filas importadas, omitidas y con error.
+
+### PWA
+- Manifest e iconos para instalar en pantalla de inicio.
+- Service worker con caché del shell de la aplicación.
+- Página offline cuando no hay conexión.
+- La app sigue funcionando para consultar el shell; las operaciones requieren red.
 
 ### Mapa de gastos
 - Vista dedicada `/map.html` con Leaflet y tiles de OpenStreetMap.
@@ -214,7 +241,11 @@ Servicios externos:
 | SpringDoc OpenAPI | 3.2.0 | Documentación de API (compatible con Spring Boot 4) |
 | Caffeine | 3.x | Caché en memoria para geocodificación |
 | Spring Boot Actuator | 4.x | Healthchecks y métricas operativas |
+| OpenPDF | 2.0.5 | Generación de reportes PDF |
+| Apache Commons CSV | 1.12.0 | Importación de extractos CSV |
+| Spring Mail | 4.x | Email opcional de notificaciones |
 | Testcontainers | 2.x | Pruebas de integración con PostgreSQL |
+| Playwright | 1.65 | Pruebas E2E del flujo principal |
 | Docker / Compose | 24+ | Contenedores y entorno reproducible |
 
 ### Frontend
@@ -381,6 +412,9 @@ docker compose down -v
 | `app.recurring.max-per-run` | Máximo de gastos generados por recurrencia y ejecución | `120` |
 | `app.uploads.dir` | Carpeta donde se guardan los comprobantes | `uploads/receipts` |
 | `app.uploads.max-bytes` | Tamaño máximo de un comprobante | `5242880` (5 MB) |
+| `app.notifications.cron` | Cron diario de generación de alertas | `0 20 3 * * *` |
+| `app.notifications.email.enabled` | Enviar notificaciones por email | `false` |
+| `app.notifications.email.from` | Remitente de las notificaciones | `no-reply@geogasto.local` |
 | `rate-limit.max-requests` | Intentos permitidos en login/registro por ventana | `20` |
 | `rate-limit.window-seconds` | Ventana del límite de intentos | `60` |
 | `server.port` | Puerto HTTP | `8080` |
@@ -393,6 +427,22 @@ docker compose down -v
 
 > Genera `JWT_SECRET` con una clave aleatoria de al menos 256 bits, por ejemplo:
 > `openssl rand -base64 48`. No reutilices la clave de ejemplo en producción.
+
+### Email opcional
+
+Las notificaciones in-app funcionan sin configuración. El envío por email está
+**desactivado por defecto** y solo se activa si configuras SMTP:
+
+```properties
+app.notifications.email.enabled=true
+app.notifications.email.from=no-reply@tudominio.com
+spring.mail.host=smtp.tu-proveedor.com
+spring.mail.port=587
+spring.mail.username=...
+spring.mail.password=...
+spring.mail.properties.mail.smtp.auth=true
+spring.mail.properties.mail.smtp.starttls.enable=true
+```
 
 ---
 
@@ -509,6 +559,7 @@ Acepta `page`, `size`, `sort`, `desde`, `hasta` y `q`.
 | `GET` | `/api/recurring-expenses` | Listar recurrencias del usuario |
 | `POST` | `/api/recurring-expenses` | Crear una recurrencia |
 | `PUT` | `/api/recurring-expenses/{id}` | Actualizar monto, categoría, lugar, fin o estado |
+| `POST` | `/api/recurring-expenses/{id}/skip` | Omitir el próximo vencimiento |
 | `DELETE` | `/api/recurring-expenses/{id}` | Eliminar una recurrencia |
 | `POST` | `/api/recurring-expenses/generate` | Generar manualmente los gastos vencidos |
 
@@ -522,7 +573,34 @@ respetando la zona horaria de cada usuario.
 |--------|------|-------------|
 | `GET` | `/api/budgets?mes=2026-11` | Resumen de presupuestos y gasto del mes |
 | `POST` | `/api/budgets` | Crear o actualizar un presupuesto por categoría/mes |
-| `DELETE` | `/api/budgets/{id}` | Eliminar un presupuesto |
+| `PUT` | `/api/budgets/general?mes=2026-11` | Crear o actualizar el presupuesto general |
+| `DELETE` | `/api/budgets/general?mes=2026-11` | Eliminar el presupuesto general |
+| `POST` | `/api/budgets/copy-previous?mes=2026-11` | Copiar presupuestos del mes anterior |
+| `DELETE` | `/api/budgets/{id}` | Eliminar un presupuesto por categoría |
+
+### Notificaciones
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| `GET` | `/api/notifications` | Listar notificaciones y contador de no leídas |
+| `POST` | `/api/notifications/{id}/read` | Marcar una notificación como leída |
+| `POST` | `/api/notifications/read-all` | Marcar todas como leídas |
+
+### Reportes
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| `GET` | `/api/reports/monthly?mes=2026-11` | Descargar reporte PDF mensual |
+
+### Importación CSV
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| `POST` | `/api/expenses/import/preview` | Previsualizar filas del CSV (`multipart`, campo `file`) |
+| `POST` | `/api/expenses/import` | Importar filas válidas y omitir duplicados |
+
+Acepta `categoryId` opcional y `delimiter=auto|,|;|tab`. Columnas mínimas:
+`fecha` y `monto`; opcionales: `descripcion` y `categoria`.
 
 ### Estadísticas
 
@@ -577,13 +655,19 @@ docker-compose.yml        # PostgreSQL + aplicación
 5. **Adjunta comprobantes** (imagen o PDF) desde el botón de clip de cada gasto.
 6. **Exporta** el listado filtrado a CSV.
 7. **Registra tus ingresos** en `/incomes.html` para calcular balance y tasa de ahorro.
-8. **Define presupuestos** en `/budgets.html` y revisa las alertas del dashboard.
+8. **Define presupuestos** generales o por categoría en `/budgets.html`; puedes
+   copiar los del mes anterior y revisar las alertas del dashboard.
 9. **Configura gastos recurrentes** en `/recurring.html`; los vencidos se generan
-   automáticamente y también puedes generarlos manualmente.
+   automáticamente, puedes omitir el próximo y generar pendientes manualmente.
 10. **Explora el mapa** en `/map.html`: clusters, colores por categoría y total
     filtrado.
 11. **Gestiona tus lugares** en `/places.html` y tu cuenta en `/profile.html`.
-12. **Revisa el dashboard** en `/index.html`: total del mes, ingresos, balance,
+12. **Revisa la campana** para alertas de presupuesto y recordatorios de recurrentes.
+13. **Descarga el reporte PDF** del mes desde el dashboard.
+14. **Importa un CSV bancario** desde “Más → Importar CSV”, previsualiza y confirma.
+15. **Instala la PWA** desde el navegador móvil; incluye manifest, service worker
+    y página offline.
+16. **Revisa el dashboard** en `/index.html`: total del mes, ingresos, balance,
     comparación mensual, presupuesto, próximos recurrentes y evolución de 12 meses.
 
 ---
@@ -619,8 +703,10 @@ El workflow `.github/workflows/ci.yml` se ejecuta en cada push a `master` o
 1. Configura Java 17.
 2. Ejecuta `./mvnw -B verify` (pruebas + reporte JaCoCo).
 3. Testcontainers levanta PostgreSQL 16 dentro del runner de GitHub Actions.
-4. Publica los reportes de tests y cobertura como artefactos (cobertura actual ~75 %).
+4. Publica los reportes de tests y cobertura como artefactos.
 5. Construye la imagen Docker para validar el empaquetado.
+6. Levanta PostgreSQL + la aplicación y ejecuta Playwright E2E del flujo
+   registro → presupuesto → notificación → ingreso → recurrencia.
 
 ---
 
@@ -643,6 +729,11 @@ El workflow `.github/workflows/ci.yml` se ejecuta en cada push a `master` o
   instancias habría que moverlo a Redis o similar.
 - **Comprobantes** con validación de MIME, firma del archivo y límite de 5 MB;
   el nombre se genera con UUID para evitar colisiones y path traversal.
+- **Notificaciones deduplicadas** por usuario + evento + periodo, con email
+  opcional apagado por defecto.
+- **Reportes PDF** generados con OpenPDF y **CSV bancario** procesado con
+  Commons CSV, con previsualización y detección de duplicados.
+- **PWA** con service worker network-first para no servir JS/CSS antiguos.
 - **CSP, X-Frame-Options y Referrer-Policy** como cabeceras de seguridad.
 - **Perfiles dev/prod** para separar logs SQL y Swagger de la configuración
   pública.
@@ -650,12 +741,13 @@ El workflow `.github/workflows/ci.yml` se ejecuta en cada push a `master` o
 
 ### Limitaciones conocidas y siguientes pasos
 
-- Ampliar la cobertura con pruebas unitarias de servicios y controladores.
-- Notificaciones por email cuando un presupuesto esté por excederse.
+- Configurar un proveedor SMTP real para activar las notificaciones por email.
+- Rollover de presupuesto y presupuesto sugerido por histórico.
+- Reprogramación de recurrencias y recurrencias de ingresos.
 - Almacenamiento de comprobantes en S3/objeto para despliegues multi-instancia.
 - Los tiles públicos de OpenStreetMap son suficientes para demo/bajo tráfico;
   para producción a escala conviene un proveedor de tiles con SLA.
-- Importación de extractos bancarios y exportación a PDF.
+- Refresh tokens en cookie `HttpOnly` y recuperación de contraseña.
 - Internacionalización completa de textos y formatos.
 - Despliegue con HTTPS y proxy inverso para uso público.
 

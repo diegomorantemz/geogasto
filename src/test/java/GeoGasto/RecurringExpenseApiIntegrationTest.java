@@ -132,6 +132,26 @@ class RecurringExpenseApiIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void omitirSiguienteAvanzaLaFecha() {
+        String token = registrar("recurring-skip-" + UUID.randomUUID() + "@test.com");
+        long categoriaId = crearCategoria(token);
+        LocalDate inicio = LocalDate.now(ZONA).plusDays(1);
+
+        ResponseEntity<Map> creado = restTemplate.exchange(
+                "/api/recurring-expenses", HttpMethod.POST,
+                conToken(token, recurrenteBody("Skip", 10.00, inicio, "MONTHLY", categoriaId)), Map.class);
+        long recurringId = ((Number) creado.getBody().get("id")).longValue();
+
+        ResponseEntity<Map> omitido = restTemplate.exchange(
+                "/api/recurring-expenses/" + recurringId + "/skip", HttpMethod.POST,
+                conToken(token), Map.class);
+
+        assertThat(omitido.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(omitido.getBody().get("proximaFecha"))
+                .isEqualTo(inicio.plusMonths(1).toString());
+    }
+
+    @Test
     void validaFechasDeLaRecurrencia() {
         String token = registrar("recurring-val-" + UUID.randomUUID() + "@test.com");
         long categoriaId = crearCategoria(token);

@@ -132,6 +132,10 @@ function renderTable() {
                         : '<span class="badge bg-secondary-subtle text-secondary-emphasis">Pausada</span>'}
                 </td>
                 <td data-label="Acciones" class="text-end text-nowrap">
+                    <button class="btn btn-sm btn-outline-secondary me-1" onclick="skipRecurring(${r.id})"
+                            aria-label="Omitir próximo" title="Omitir próximo">
+                        <i class="bi bi-skip-forward"></i>
+                    </button>
                     <button class="btn btn-sm btn-outline-primary me-1" onclick="editRecurring(${r.id})"
                             aria-label="Editar recurrencia" title="Editar">
                         <i class="bi bi-pencil"></i>
@@ -240,6 +244,20 @@ async function handleSaveRecurring(event) {
         submitting = false;
         btn.disabled = false;
         btn.innerHTML = original;
+    }
+}
+
+async function skipRecurring(id) {
+    const r = recurrences.find(x => x.id === id);
+    if (!r) return;
+    if (!confirm(`¿Omitir el próximo gasto de "${r.descripcion || 'Sin descripción'}"?`)) return;
+
+    try {
+        await api.post('/recurring-expenses/' + id + '/skip', {});
+        showSuccess('Próximo gasto omitido');
+        await loadRecurring();
+    } catch (err) {
+        showError('No se pudo omitir: ' + err.message);
     }
 }
 

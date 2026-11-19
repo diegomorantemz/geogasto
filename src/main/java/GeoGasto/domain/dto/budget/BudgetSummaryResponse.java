@@ -19,5 +19,10 @@ public class BudgetSummaryResponse {
     private BigDecimal totalGastado;
     private BigDecimal totalDisponible;
     private BigDecimal porcentaje;
+    private BigDecimal presupuestoGeneral;
+    private BigDecimal gastadoGeneral;
+    private BigDecimal disponibleGeneral;
+    private BigDecimal porcentajeGeneral;
+    private String estadoGeneral;
     private List<BudgetResponse> presupuestos;
 }

@@ -43,6 +43,14 @@ public class RecurringExpenseController {
         return ResponseEntity.ok(recurringExpenseService.actualizar(auth.getName(), id, request));
     }
 
+    @PostMapping("/{id}/skip")
+    public ResponseEntity<RecurringExpenseResponse> omitirSiguiente(
+            Authentication auth,
+            @PathVariable Long id
+    ) {
+        return ResponseEntity.ok(recurringExpenseService.omitirSiguiente(auth.getName(), id));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> eliminar(Authentication auth, @PathVariable Long id) {
         recurringExpenseService.eliminar(auth.getName(), id);

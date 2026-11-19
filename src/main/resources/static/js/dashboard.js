@@ -21,6 +21,33 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadRecurringSummary();
 });
 
+async function downloadMonthlyReport() {
+    try {
+        const response = await fetch('/api/reports/monthly', {
+            headers: { Authorization: 'Bearer ' + getToken() }
+        });
+        if (response.status === 401) {
+            logout();
+            return;
+        }
+        if (!response.ok) {
+            throw new Error('No se pudo generar el reporte');
+        }
+
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'geogasto-reporte.pdf';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+    } catch (err) {
+        showStatsError(err.message);
+    }
+}
+
 function initCurrencySelector() {
     const select = document.getElementById('currencySelect');
     if (!select) return;
@@ -73,7 +100,7 @@ async function loadBudgetSummary() {
     try {
         const data = await api.get('/budgets');
         const items = data.presupuestos || [];
-        if (!items.length) {
+        if (!items.length && data.presupuestoGeneral == null) {
             card.classList.add('d-none');
             return;
         }
@@ -90,7 +117,24 @@ async function loadBudgetSummary() {
         bar.className = 'progress-bar ' + (pct >= 100 ? 'bg-danger' : pct >= 80 ? 'bg-warning' : 'bg-success');
         bar.parentElement.setAttribute('aria-valuenow', String(width));
 
+        const generalLine = document.getElementById('budgetGeneralLine');
+        if (data.presupuestoGeneral != null) {
+            generalLine.textContent = `General: ${formatMoney(data.presupuestoGeneral)} · `
+                + `gastado ${formatMoney(data.gastadoGeneral)} · `
+                + `${Number(data.porcentajeGeneral || 0).toFixed(1)} %`;
+            generalLine.classList.remove('d-none');
+        } else {
+            generalLine.classList.add('d-none');
+        }
+
         const alerts = items.filter(i => i.estado !== 'OK');
+        if (data.estadoGeneral && data.estadoGeneral !== 'OK') {
+            alerts.unshift({
+                categoryNombre: 'General',
+                porcentaje: data.porcentajeGeneral,
+                estado: data.estadoGeneral
+            });
+        }
         const box = document.getElementById('budgetAlerts');
         if (!alerts.length) {
             box.innerHTML = '<div class="small text-success"><i class="bi bi-check-circle"></i> Todo bajo control.</div>';

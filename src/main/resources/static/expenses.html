@@ -137,14 +137,16 @@
                         </span>
                     </div>
                 </div>
+                <img id="receiptPreview" class="receipt-preview d-none mt-2" alt="Vista previa del comprobante">
                 <p class="small text-muted" id="receiptEmpty">Este gasto todavía no tiene comprobante.</p>
 
                 <form id="receiptForm" onsubmit="handleUploadReceipt(event)">
                     <div class="mb-3">
                         <label for="receiptFile" class="form-label">Adjuntar imagen o PDF</label>
                         <input type="file" id="receiptFile" class="form-control" required
-                               accept="image/jpeg,image/png,image/webp,application/pdf">
-                        <div class="form-text">JPG, PNG, WebP o PDF. Máximo 5 MB.</div>
+                               accept="image/jpeg,image/png,image/webp,application/pdf"
+                               capture="environment">
+                        <div class="form-text">JPG, PNG, WebP o PDF. Máximo 5 MB. En móvil puedes tomar la foto.</div>
                     </div>
                     <button type="submit" class="btn btn-primary" id="receiptUploadBtn">
                         <i class="bi bi-cloud-upload"></i> Subir comprobante

@@ -10,7 +10,8 @@ const SECONDARY_NAV = [
     { key: 'presupuestos', href: '/budgets.html', icon: 'bi-bullseye', label: 'Presupuestos' },
     { key: 'recurrentes', href: '/recurring.html', icon: 'bi-arrow-repeat', label: 'Recurrentes' },
     { key: 'categorias', href: '/categories.html', icon: 'bi-tags', label: 'Categorías' },
-    { key: 'lugares', href: '/places.html', icon: 'bi-bookmark-star', label: 'Lugares' }
+    { key: 'lugares', href: '/places.html', icon: 'bi-bookmark-star', label: 'Lugares' },
+    { key: 'importar', href: '/import.html', icon: 'bi-file-earmark-arrow-up', label: 'Importar CSV' }
 ];
 
 const SECONDARY_KEYS = new Set(SECONDARY_NAV.map(item => item.key).concat('perfil'));
@@ -57,6 +58,12 @@ function renderAppNav() {
                     <a href="/new-expense.html" class="btn btn-light btn-sm">
                         <i class="bi bi-plus-circle"></i> Nuevo gasto
                     </a>
+                    <button type="button" class="btn btn-outline-light btn-sm notification-bell"
+                            data-bs-toggle="offcanvas" data-bs-target="#notificationsMenu"
+                            aria-label="Notificaciones" aria-controls="notificationsMenu">
+                        <i class="bi bi-bell"></i>
+                        <span class="notification-badge d-none">0</span>
+                    </button>
                     <div class="dropdown">
                         <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button"
                                 data-bs-toggle="dropdown" aria-expanded="false">
@@ -83,9 +90,17 @@ function renderAppNav() {
             <a class="navbar-brand text-white" href="/index.html">
                 <i class="bi bi-wallet2"></i> GeoGasto
             </a>
-            <a href="/profile.html" class="mobile-profile-link" aria-label="Mi perfil" title="Mi perfil">
-                <i class="bi bi-person-circle"></i>
-            </a>
+            <div class="mobile-topbar-actions">
+                <button type="button" class="mobile-topbar-btn notification-bell"
+                        data-bs-toggle="offcanvas" data-bs-target="#notificationsMenu"
+                        aria-label="Notificaciones" aria-controls="notificationsMenu">
+                    <i class="bi bi-bell"></i>
+                    <span class="notification-badge d-none">0</span>
+                </button>
+                <a href="/profile.html" class="mobile-profile-link" aria-label="Mi perfil" title="Mi perfil">
+                    <i class="bi bi-person-circle"></i>
+                </a>
+            </div>
         </header>
 
         <nav class="mobile-bottom-nav d-xl-none" aria-label="Navegación principal">
@@ -130,7 +145,28 @@ function renderAppNav() {
                 </div>
             </div>
         </div>
+
+        <div class="offcanvas offcanvas-end" tabindex="-1" id="notificationsMenu"
+             aria-labelledby="notificationsMenuLabel">
+            <div class="offcanvas-header">
+                <h5 class="offcanvas-title" id="notificationsMenuLabel">Notificaciones</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
+            </div>
+            <div class="offcanvas-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="small text-muted" id="notificationCount">Sin novedades</span>
+                    <button type="button" class="btn btn-sm btn-link p-0" onclick="markAllNotifications()">
+                        Marcar todas
+                    </button>
+                </div>
+                <div id="notificationsList">
+                    <div class="text-center text-muted py-4 small">Cargando...</div>
+                </div>
+            </div>
+        </div>
     `;
+
+    loadNotifications();
 }
 
 function navLink(item, active) {
@@ -150,6 +186,98 @@ function mobileNavLink(item, active) {
             <span>${item.label}</span>
         </a>
     `;
+}
+
+async function loadNotifications() {
+    const list = document.getElementById('notificationsList');
+    if (!list) return;
+
+    try {
+        const data = await api.get('/notifications');
+        updateNotificationBadge(data.unread || 0);
+        renderNotificationList(data.notifications || []);
+    } catch (err) {
+        list.innerHTML = '<div class="text-center text-muted py-4 small">No se pudieron cargar las notificaciones.</div>';
+    }
+}
+
+function updateNotificationBadge(unread) {
+    const count = document.getElementById('notificationCount');
+    if (count) {
+        count.textContent = unread > 0 ? unread + ' sin leer' : 'Sin novedades';
+    }
+
+    document.querySelectorAll('.notification-badge').forEach(badge => {
+        if (unread > 0) {
+            badge.textContent = unread > 99 ? '99+' : String(unread);
+            badge.classList.remove('d-none');
+        } else {
+            badge.classList.add('d-none');
+        }
+    });
+}
+
+function renderNotificationList(items) {
+    const list = document.getElementById('notificationsList');
+    if (!list) return;
+
+    if (!items.length) {
+        list.innerHTML = '<div class="text-center text-muted py-4 small">No tienes notificaciones.</div>';
+        return;
+    }
+
+    list.innerHTML = items.map(n => `
+        <button type="button" class="notification-item ${n.leida ? 'read' : 'unread'}"
+                data-id="${n.id}" data-link="${navEscape(n.link || '')}">
+            <div class="notification-icon">
+                <i class="bi ${n.tipo === 'RECURRENTE' ? 'bi-arrow-repeat' : 'bi-bullseye'}"></i>
+            </div>
+            <div class="min-w-0">
+                <div class="fw-semibold small">${navEscape(n.titulo)}</div>
+                <div class="small text-muted">${navEscape(n.mensaje)}</div>
+                <div class="small text-muted mt-1">${formatNotificationDate(n.createdAt)}</div>
+            </div>
+        </button>
+    `).join('');
+
+    list.querySelectorAll('.notification-item').forEach(button => {
+        button.addEventListener('click', () => {
+            openNotification(Number(button.dataset.id), button.dataset.link || '');
+        });
+    });
+}
+
+async function openNotification(id, link) {
+    try {
+        await api.post(`/notifications/${id}/read`, {});
+        await loadNotifications();
+        if (link) {
+            window.location.href = link;
+        }
+    } catch (err) {
+        // silencioso
+    }
+}
+
+async function markAllNotifications() {
+    try {
+        await api.post('/notifications/read-all', {});
+        await loadNotifications();
+    } catch (err) {
+        // silencioso
+    }
+}
+
+function formatNotificationDate(value) {
+    if (!value) return '';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+    return date.toLocaleDateString('es-PE', {
+        day: 'numeric',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
 }
 
 function navEscape(str) {

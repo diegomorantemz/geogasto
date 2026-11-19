@@ -1,3 +1,27 @@
+// PWA: manifest, theme color y service worker.
+(function initPwa() {
+    if (!document.querySelector('link[rel="manifest"]')) {
+        const link = document.createElement('link');
+        link.rel = 'manifest';
+        link.href = '/manifest.webmanifest';
+        document.head.appendChild(link);
+    }
+    if (!document.querySelector('meta[name="theme-color"]')) {
+        const meta = document.createElement('meta');
+        meta.name = 'theme-color';
+        meta.content = '#1e3a8a';
+        document.head.appendChild(meta);
+    }
+    if ('serviceWorker' in navigator &&
+        (location.protocol === 'https:' || ['localhost', '127.0.0.1'].includes(location.hostname))) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js').catch(() => {
+                // La app sigue funcionando sin service worker.
+            });
+        });
+    }
+})();
+
 // Authentication helpers
 
 const TOKEN_KEY = 'geogasto_token';

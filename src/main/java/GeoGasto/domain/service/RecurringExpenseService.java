@@ -98,6 +98,20 @@ public class RecurringExpenseService {
     }
 
     @Transactional
+    public RecurringExpenseResponse omitirSiguiente(String email, Long id) {
+        User user = obtenerUsuario(email);
+        RecurringExpense recurring = obtenerPropio(user, id);
+
+        LocalDate siguiente = siguiente(recurring.getProximaFecha(), recurring.getFrecuencia());
+        recurring.setProximaFecha(siguiente);
+        if (recurring.getFechaFin() != null && siguiente.isAfter(recurring.getFechaFin())) {
+            recurring.setActivo(false);
+        }
+        recurringRepository.save(recurring);
+        return toResponse(recurring);
+    }
+
+    @Transactional
     public void eliminar(String email, Long id) {
         User user = obtenerUsuario(email);
         recurringRepository.delete(obtenerPropio(user, id));

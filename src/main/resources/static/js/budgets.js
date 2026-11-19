@@ -1,6 +1,7 @@
 // Monthly budgets
 
 let budgetModal;
+let generalBudgetModal;
 let categories = [];
 let budgets = [];
 let summary = null;
@@ -12,6 +13,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await ensureProfile();
 
     budgetModal = new bootstrap.Modal(document.getElementById('budgetModal'));
+    generalBudgetModal = new bootstrap.Modal(document.getElementById('generalBudgetModal'));
     document.getElementById('budgetMonth').value = localMonthISO();
     document.getElementById('budgetMonth').addEventListener('change', loadBudgets);
 
@@ -60,6 +62,76 @@ function renderSummary(data) {
     progress.style.width = pct + '%';
     progress.className = 'progress-bar ' + progressClass(Number(data.porcentaje || 0));
     progress.parentElement.setAttribute('aria-valuenow', String(pct));
+
+    renderGeneralBudget(data);
+}
+
+function renderGeneralBudget(data) {
+    const amount = data.presupuestoGeneral;
+    const detail = document.getElementById('generalBudgetDetail');
+    const bar = document.getElementById('generalBudgetBar');
+    const remove = document.getElementById('generalBudgetRemoveBtn');
+
+    if (amount == null) {
+        document.getElementById('generalBudgetAmount').textContent = 'Sin definir';
+        detail.textContent = 'Define un límite total para el mes.';
+        bar.style.width = '0%';
+        bar.className = 'progress-bar bg-success';
+        remove.classList.add('d-none');
+        return;
+    }
+
+    const pct = Number(data.porcentajeGeneral || 0);
+    document.getElementById('generalBudgetAmount').textContent = formatMoney(amount);
+    detail.textContent = `Gastado ${formatMoney(data.gastadoGeneral)} · Disponible ${formatMoney(data.disponibleGeneral)} · ${pct.toFixed(1)} %`;
+    bar.style.width = Math.min(Math.max(pct, 0), 100) + '%';
+    bar.className = 'progress-bar ' + progressClass(pct);
+    remove.classList.remove('d-none');
+}
+
+function openGeneralBudgetModal() {
+    document.getElementById('generalBudgetMonto').value =
+        summary && summary.presupuestoGeneral != null ? summary.presupuestoGeneral : '';
+    document.getElementById('generalBudgetMonth').textContent = getMonth();
+    generalBudgetModal.show();
+}
+
+async function handleSaveGeneralBudget(event) {
+    event.preventDefault();
+    const monto = parseFloat(document.getElementById('generalBudgetMonto').value);
+    if (!Number.isFinite(monto) || monto <= 0) {
+        showError('El presupuesto general debe ser mayor a 0');
+        return;
+    }
+
+    const btn = document.getElementById('generalBudgetSaveBtn');
+    const original = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Guardando...';
+
+    try {
+        await api.put('/budgets/general?mes=' + encodeURIComponent(getMonth()), { monto });
+        generalBudgetModal.hide();
+        showSuccess('Presupuesto general guardado');
+        await loadBudgets();
+    } catch (err) {
+        showError(err.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = original;
+    }
+}
+
+async function deleteGeneralBudget() {
+    if (!confirm(`¿Quitar el presupuesto general de ${getMonth()}?`)) return;
+
+    try {
+        await api.delete('/budgets/general?mes=' + encodeURIComponent(getMonth()));
+        showSuccess('Presupuesto general eliminado');
+        await loadBudgets();
+    } catch (err) {
+        showError(err.message);
+    }
 }
 
 function renderTable() {
@@ -191,6 +263,28 @@ async function handleSaveBudget(event) {
         showError(err.message);
     } finally {
         submitting = false;
+        btn.disabled = false;
+        btn.innerHTML = original;
+    }
+}
+
+async function copyPreviousBudgets() {
+    const btn = document.getElementById('copyBudgetBtn');
+    const original = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Copiando...';
+
+    try {
+        const result = await api.post('/budgets/copy-previous?mes=' + encodeURIComponent(getMonth()), {});
+        showSuccess(result.copiados > 0
+            ? (result.copiados === 1
+                ? 'Se copió 1 presupuesto del mes anterior'
+                : `Se copiaron ${result.copiados} presupuestos del mes anterior`)
+            : 'No había presupuestos nuevos que copiar');
+        await loadBudgets();
+    } catch (err) {
+        showError(err.message);
+    } finally {
         btn.disabled = false;
         btn.innerHTML = original;
     }

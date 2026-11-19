@@ -1,8 +1,10 @@
 package GeoGasto.web.controller;
 
+import GeoGasto.domain.dto.budget.BudgetCopyResponse;
 import GeoGasto.domain.dto.budget.BudgetRequest;
 import GeoGasto.domain.dto.budget.BudgetResponse;
 import GeoGasto.domain.dto.budget.BudgetSummaryResponse;
+import GeoGasto.domain.dto.budget.GeneralBudgetRequest;
 import GeoGasto.domain.service.BudgetService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Pattern;
@@ -36,6 +38,39 @@ public class BudgetController {
             @Valid @RequestBody BudgetRequest request
     ) {
         return ResponseEntity.ok(budgetService.guardar(auth.getName(), request));
+    }
+
+    @PutMapping("/general")
+    public ResponseEntity<Void> guardarGeneral(
+            Authentication auth,
+            @RequestParam(required = false)
+            @Pattern(regexp = "^\\d{4}-(0[1-9]|1[0-2])$", message = "El mes debe tener formato YYYY-MM")
+            String mes,
+            @Valid @RequestBody GeneralBudgetRequest request
+    ) {
+        budgetService.guardarGeneral(auth.getName(), mes, request);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/general")
+    public ResponseEntity<Void> eliminarGeneral(
+            Authentication auth,
+            @RequestParam(required = false)
+            @Pattern(regexp = "^\\d{4}-(0[1-9]|1[0-2])$", message = "El mes debe tener formato YYYY-MM")
+            String mes
+    ) {
+        budgetService.eliminarGeneral(auth.getName(), mes);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/copy-previous")
+    public ResponseEntity<BudgetCopyResponse> copiarMesAnterior(
+            Authentication auth,
+            @RequestParam(required = false)
+            @Pattern(regexp = "^\\d{4}-(0[1-9]|1[0-2])$", message = "El mes debe tener formato YYYY-MM")
+            String mes
+    ) {
+        return ResponseEntity.ok(budgetService.copiarMesAnterior(auth.getName(), mes));
     }
 
     @DeleteMapping("/{id}")

@@ -101,6 +101,41 @@ class BudgetApiIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void presupuestoGeneralYCopiaDelMesAnterior() {
+        String token = registrar("budget-general-" + UUID.randomUUID() + "@test.com");
+        long categoriaId = crearCategoria(token);
+        YearMonth actual = YearMonth.now(ZONA);
+        String mes = actual.toString();
+        String anterior = actual.minusMonths(1).toString();
+
+        guardarPresupuesto(token, categoriaId, anterior, 80.00);
+
+        ResponseEntity<Map> copia = restTemplate.exchange(
+                "/api/budgets/copy-previous?mes=" + mes, HttpMethod.POST, conToken(token), Map.class);
+        assertThat(copia.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(((Number) copia.getBody().get("copiados")).intValue()).isEqualTo(1);
+
+        ResponseEntity<Void> general = restTemplate.exchange(
+                "/api/budgets/general?mes=" + mes, HttpMethod.PUT,
+                conToken(token, Map.of("monto", 100.00)), Void.class);
+        assertThat(general.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+
+        crearGasto(token, LocalDate.now(ZONA).toString(), 85.00, categoriaId, "Gasto general");
+
+        Map resumen = getResumen(token, mes);
+        assertThat(((Number) resumen.get("presupuestoGeneral")).doubleValue()).isEqualTo(100.00);
+        assertThat(((Number) resumen.get("gastadoGeneral")).doubleValue()).isEqualTo(85.00);
+        assertThat(resumen.get("estadoGeneral")).isEqualTo("ALERTA");
+
+        ResponseEntity<Void> borradoGeneral = restTemplate.exchange(
+                "/api/budgets/general?mes=" + mes, HttpMethod.DELETE, conToken(token), Void.class);
+        assertThat(borradoGeneral.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+
+        resumen = getResumen(token, mes);
+        assertThat(resumen.get("presupuestoGeneral")).isNull();
+    }
+
+    @Test
     void validaMesMontoYCategoriaDelPresupuesto() {
         String token = registrar("budget-val-" + UUID.randomUUID() + "@test.com");
         long categoriaId = crearCategoria(token);
