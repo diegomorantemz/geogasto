@@ -11,7 +11,7 @@ COPY src ./src
 RUN mvn -B -q -Dmaven.test.skip=true package
 
 # ===== Runtime =====
-FROM eclipse-temurin:17-jre
+FROM eclipse-temurin:24-jre
 WORKDIR /app
 
 RUN apt-get update \
