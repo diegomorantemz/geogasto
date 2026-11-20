@@ -8,6 +8,7 @@ Materiales de exposición del proyecto.
 - `GeoGasto-Avance-3.pdf` — versión PDF de la presentación.
 - `GeoGasto-Avance-3-Guion-Exposicion.docx` — guion completo para los tres integrantes.
 - `GeoGasto-Avance-3-Guion-Exposicion.pdf` — versión PDF del guion.
+- `assets/reporte-pdf.png` — captura del PDF usado en la presentación.
 
 ## Duración sugerida
 
@@ -15,11 +16,13 @@ Materiales de exposición del proyecto.
 
 | Integrante | Diapositivas | Tiempo | Enfoque |
 |---|---|---|---|
-| Diego Morante | 1–4 | 5 min | Problema, propuesta, demo y funcionalidades |
-| Aaron Olaechea | 5–7 | 5 min | Funcionalidades, arquitectura y seguridad |
-| D'alessandro Garcia | 8–13 | 5 min | Avance 3, calidad, roadmap y cierre |
+| Aaron Olaechea | 1–4 | 5 min | Problema, demo y presentación |
+| Diego Morante | 5–7 | 5 min | Funciones, arquitectura, seguridad y datos |
+| D'alessandro Garcia | 8–13 | 5 min | Avance 3, pruebas, próximos pasos y cierre |
 
-Los nombres y el orden se pueden intercambiar según disponibilidad del equipo.
+Diego explica la arquitectura y la seguridad porque es la parte que mejor domina.
+Aaron abre la presentación y hace la demo. Los nombres se pueden cambiar si el
+equipo lo necesita, pero el orden está pensado para ir de lo general a lo técnico.
 
 ## Antes de exponer
 
