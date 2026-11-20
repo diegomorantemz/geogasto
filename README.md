@@ -42,27 +42,9 @@ de desarrollo backend con Spring Boot y arquitectura REST.
 
 ---
 
-## Capturas
-
-| Dashboard | Presupuestos |
-|---|---|
-| ![Dashboard](docs/screenshots/dashboard.png) | ![Presupuestos](docs/screenshots/budgets.png) |
-
-| Ingresos | Recurrentes |
-|---|---|
-| ![Ingresos](docs/screenshots/incomes.png) | ![Recurrentes](docs/screenshots/recurring.png) |
-
-| Mapa de gastos | Inicio de sesión |
-|---|---|
-| ![Mapa de gastos](docs/screenshots/map.png) | ![Inicio de sesión](docs/screenshots/login.png) |
-
-### Diseño móvil
+## Diseño móvil
 
 La app está pensada primero para móvil: barra superior compacta, navegación inferior con acción central para registrar gastos, menú “Más” y tablas convertidas en tarjetas. La marca GeoGasto lleva al dashboard; no hay botón “Inicio” para reducir ruido.
-
-| Dashboard | Gastos |
-|---|---|
-| ![Dashboard móvil](docs/screenshots/mobile-dashboard.png) | ![Gastos móvil](docs/screenshots/mobile-expenses.png) |
 
 ---
 

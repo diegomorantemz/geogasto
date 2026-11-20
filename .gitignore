@@ -38,3 +38,6 @@ uploads/
 node_modules/
 test-results/
 playwright-report/
+
+# Material local: presentaciones, capturas y documentos
+/docs/
